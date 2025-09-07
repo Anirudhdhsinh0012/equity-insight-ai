@@ -1,0 +1,52 @@
+{
+  "general": {
+    "siteName": "Stock Advisor Pro",
+    "siteDescription": "Professional stock trading advisor platform",
+    "timezone": "America/New_York",
+    "language": "en",
+    "theme": "light"
+  },
+  "users": {
+    "allowRegistration": true,
+    "requireEmailVerification": true,
+    "enableTwoFactor": false,
+    "maxLoginAttempts": 5,
+    "sessionTimeout": 30,
+    "passwordMinLength": 8
+  },
+  "notifications": {
+    "emailNotifications": true,
+    "pushNotifications": true,
+    "smsNotifications": false,
+    "soundEnabled": true,
+    "marketAlerts": true,
+    "newsUpdates": true,
+    "systemMaintenance": true
+  },
+  "security": {
+    "enableSSL": true,
+    "enableFirewall": true,
+    "blockSuspiciousIPs": true,
+    "enableAPIRateLimit": true,
+    "maxAPIRequests": 1000,
+    "enableAuditLog": true,
+    "dataRetention": 90
+  },
+  "database": {
+    "autoBackup": true,
+    "backupFrequency": "daily",
+    "maxBackupFiles": 30,
+    "enableCompression": true,
+    "lastBackup": "2025-09-04T06:41:11.379Z",
+    "databaseSize": "2.4 GB"
+  },
+  "appearance": {
+    "primaryColor": "#F59E0B",
+    "fontFamily": "poppins",
+    "sidebarWidth": 247,
+    "compactMode": true,
+    "animations": true,
+    "showTooltips": true,
+    "highContrast": true
+  }
+}
