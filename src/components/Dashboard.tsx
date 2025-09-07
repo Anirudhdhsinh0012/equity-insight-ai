@@ -470,8 +470,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         notificationCount={0}
       />
 
-      {/* Main Content Area with Modern Layout */}
-      <div className="ml-80 min-h-screen">
+  {/* Main Content Area with Modern Layout */}
+  {/* Responsive: on small screens full width with top padding to avoid overlap; on large screens leave space for sidebar */}
+  <div className="min-h-screen pt-20 lg:pt-0 lg:ml-80 transition-all duration-300">
         {/* Enhanced Dashboard Header */}
         <DashboardHeader
           user={user}
@@ -483,8 +484,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           notificationCount={0}
         />
 
-        {/* Content Container */}
-        <div className="p-8 pt-4">
+  {/* Content Container (responsive padding) */}
+  <div className="p-4 sm:p-6 lg:p-8 pt-4">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, x: 20 }}
