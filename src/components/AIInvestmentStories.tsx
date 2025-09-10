@@ -154,9 +154,14 @@ const AIInvestmentStories = React.memo<AIInvestmentStoriesProps>(({ userId, clas
       }
       
       const response = await fetch(`/api/ai-stories?${params}`);
-      const data = await response.json();
       
       if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
         throw new Error(data.error || 'Failed to load stories');
       }
       

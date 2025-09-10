@@ -60,7 +60,7 @@ class AIContentGenerationService {
 
   constructor() {
     this.apiKey = process.env.OPENAI_API_KEY || process.env.CLAUDE_API_KEY || '';
-    this.newsApiKey = 'bz.5VVPUPD6V2NESXDQKPM5A6N7IDFOKBW5'; // Benzinga API key
+    this.newsApiKey = 'c118fac8faa941d987aca7da618e7e29'; // Explorium API key
   }
 
   /**
@@ -74,7 +74,7 @@ class AIContentGenerationService {
 
       for (const stock of topStocks.slice(0, 5)) { // Limit to prevent API overuse
         try {
-          const response = await fetch(`/api/news/benzinga?ticker=${stock}&limit=4&days=3`);
+          const response = await fetch(`/api/news/explorium?ticker=${stock}&limit=4&days=3`);
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.news) {

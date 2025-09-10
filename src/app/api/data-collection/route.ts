@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       data: combinedData,
       sources: {
         stockData: 'Finnhub',
-        newsData: 'Benzinga',
+        newsData: 'Explorium',
         technicalData: 'Finnhub Technical'
       }
     });
@@ -108,10 +108,10 @@ async function fetchStockQuote(ticker: string) {
   }
 }
 
-// Fetch news data from Benzinga
+// Fetch news data from Explorium
 async function fetchNewsData(ticker: string) {
   try {
-    const response = await fetch(`/api/news/benzinga?ticker=${ticker}&limit=5`);
+    const response = await fetch(`/api/news/explorium?ticker=${ticker}&limit=5`);
     if (!response.ok) {
       throw new Error(`News API error: ${response.status}`);
     }

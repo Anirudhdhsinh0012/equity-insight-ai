@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
           used: apiStatus.quotaUsed,
           limit: apiStatus.quotaLimit,
           remaining: apiStatus.quotaRemaining,
-          resetTime: apiStatus.resetTime,
+          resetTime: apiStatus.resetTime.toISOString(),
           isLimitReached: apiStatus.isLimitReached,
-          lastUpdated: apiStatus.lastUpdated
+          lastUpdated: apiStatus.lastUpdated.toISOString()
         },
         apiKeyTest,
         message: healthCheck.status === 'unhealthy' 
@@ -48,7 +48,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching service status:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        success: false,
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

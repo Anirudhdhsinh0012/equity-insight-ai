@@ -35,10 +35,13 @@ interface AIStoryResponse {
 class AIStoryGenerationService {
   private apiKey: string;
   private apiEndpoint: string;
+  private baseUrl: string;
 
   constructor() {
     this.apiKey = process.env.OPENAI_API_KEY || process.env.CLAUDE_API_KEY || '';
     this.apiEndpoint = process.env.AI_API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
+    // For server-side calls, use localhost. In production, this should be your domain
+    this.baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3003';
   }
 
   /**
@@ -49,7 +52,7 @@ class AIStoryGenerationService {
       const prompt = this.buildPrompt(request);
       
       // In a real implementation, this would call OpenAI or Claude API
-      const aiResponse = await this.callAIAPI(prompt, request.tone);
+      const aiResponse = await this.callAIAPI(prompt, request.tone, request.ticker);
       
       return this.parseAIResponse(aiResponse, request);
     } catch (error) {
@@ -166,42 +169,148 @@ Respond in JSON format:
   /**
    * Call the AI API (OpenAI or Claude)
    */
-  private async callAIAPI(prompt: string, tone: string): Promise<any> {
+  private async callAIAPI(prompt: string, tone: string, ticker?: string): Promise<any> {
     // Mock implementation - in production, this would call the actual AI API
     console.log('AI API Call:', { prompt: prompt.substring(0, 100) + '...', tone });
     
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Return mock response based on tone
-    const mockResponses = {
-      professional: {
-        title: "Technical Analysis Signals Strong Momentum",
-        content: "Recent market dynamics indicate significant institutional interest in this equity position. The confluence of technical indicators and fundamental catalysts suggests sustained upward trajectory, supported by robust trading volume and positive sentiment across multiple analyst coverage reports.",
-        sentiment: "bullish",
-        emoji: "📊",
-        tags: ["Technical Analysis", "Institutional", "Volume", "Momentum"],
-        confidence: 88
+    // Generate ticker-specific responses for diversity
+    return this.generateTickerSpecificResponse(ticker || 'UNKNOWN', tone);
+  }
+
+  /**
+   * Generate ticker-specific mock responses
+   */
+  private generateTickerSpecificResponse(ticker: string, tone: string): any {
+    const responses = {
+      AAPL: {
+        professional: {
+          title: "Apple Shows Resilience in Tech Sector Volatility",
+          content: "Apple Inc. demonstrates strong fundamentals amid broader tech market fluctuations. The company's diversified revenue streams, including services and hardware, continue to provide stability. Recent iPhone sales data and services growth indicate sustained consumer demand and ecosystem strength.",
+          sentiment: "bullish",
+          emoji: "🍎",
+          tags: ["Technology", "Consumer Electronics", "Services", "Innovation"],
+          confidence: 85
+        },
+        casual: {
+          title: "Apple Stock Making Investors Happy Today",
+          content: "Apple's doing what Apple does best - keeping investors satisfied! The tech giant continues to innovate while maintaining its loyal customer base. Whether it's new iPhone features or growing App Store revenue, Apple seems to have that magic touch that keeps the stock moving in the right direction.",
+          sentiment: "bullish",
+          emoji: "📱",
+          tags: ["Tech", "Innovation", "Growth", "Consumer"],
+          confidence: 82
+        }
       },
-      casual: {
-        title: "This Stock is Making Moves Today",
-        content: "Hey investors! This stock caught everyone's attention today with some solid gains. The company seems to be hitting all the right notes lately, and traders are definitely taking notice. It's one of those days where everything just clicks - good news, strong volume, and positive vibes all around.",
-        sentiment: "bullish",
-        emoji: "🚀",
-        tags: ["Trending", "Volume", "Gains", "Positive"],
-        confidence: 82
+      GOOGL: {
+        professional: {
+          title: "Alphabet's Cloud Division Drives Revenue Growth",
+          content: "Alphabet Inc. continues to capitalize on digital transformation trends, with Google Cloud showing impressive growth rates. The company's advertising business remains robust while AI investments position Google for future market opportunities. Search dominance and YouTube's performance contribute to stable revenue streams.",
+          sentiment: "bullish",
+          emoji: "🔍",
+          tags: ["Cloud Computing", "Advertising", "AI", "Digital Transformation"],
+          confidence: 88
+        },
+        casual: {
+          title: "Google's Getting Into Everything (And It's Working)",
+          content: "From search to cloud to AI, Google just keeps expanding and succeeding. Their cloud business is booming, YouTube ads are printing money, and they're leading the AI race. It's like watching a tech octopus that's really good at making money with all its arms!",
+          sentiment: "bullish",
+          emoji: "🐙",
+          tags: ["Cloud", "AI", "Search", "Growth"],
+          confidence: 80
+        }
       },
-      funny: {
-        title: "Stock Goes Brrrr (In a Good Way)",
-        content: "Well, well, well... look who decided to show up to the party! This stock just pulled a classic 'hold my coffee' move and shot up like it remembered it left the stove on. Investors are probably doing their happy dance right about now, and who can blame them? When the market gives you lemons, sometimes it gives you rocket fuel instead! 🤷‍♂️",
-        sentiment: "bullish",
-        emoji: "🎉",
-        tags: ["Meme", "Rally", "Surprise", "Fun"],
-        confidence: 75
+      MSFT: {
+        professional: {
+          title: "Microsoft Azure Gains Enterprise Market Share",
+          content: "Microsoft Corporation strengthens its position in enterprise cloud computing with Azure adoption accelerating across industries. Office 365 subscriptions provide recurring revenue stability while AI integration across products enhances competitive positioning. Strong balance sheet supports continued innovation investments.",
+          sentiment: "bullish",
+          emoji: "☁️",
+          tags: ["Enterprise Software", "Cloud", "Subscription", "AI Integration"],
+          confidence: 90
+        },
+        casual: {
+          title: "Microsoft is Crushing It in the Cloud Game",
+          content: "Microsoft's Azure cloud platform is seriously taking off! Businesses everywhere are switching to their services, and it's paying off big time. Plus, everyone's still using Office 365, so they've got that steady income flowing in. They're basically the reliable friend of the tech world.",
+          sentiment: "bullish",
+          emoji: "💼",
+          tags: ["Cloud", "Office", "Enterprise", "Reliable"],
+          confidence: 87
+        }
+      },
+      TSLA: {
+        professional: {
+          title: "Tesla Maintains EV Market Leadership Position",
+          content: "Tesla Inc. continues to lead electric vehicle adoption with expanding production capacity and technological innovation. Supercharger network growth and autonomous driving developments strengthen the company's competitive moat. Energy storage and solar businesses provide additional growth avenues beyond automotive.",
+          sentiment: "bullish",
+          emoji: "⚡",
+          tags: ["Electric Vehicles", "Autonomous Driving", "Energy", "Innovation"],
+          confidence: 83
+        },
+        casual: {
+          title: "Tesla's Electric Dreams Keep Getting Bigger",
+          content: "Tesla isn't just making electric cars anymore - they're building the whole electric future! From charging stations everywhere to self-driving tech that's getting scary good, Elon and the team keep pushing boundaries. Plus, those solar panels and batteries are starting to make real money too.",
+          sentiment: "bullish",
+          emoji: "🚗",
+          tags: ["EV", "Future Tech", "Innovation", "Elon"],
+          confidence: 81
+        }
+      },
+      NVDA: {
+        professional: {
+          title: "NVIDIA Dominates AI Infrastructure Market",
+          content: "NVIDIA Corporation capitalizes on unprecedented AI demand with data center revenue reaching new heights. The company's GPU technology remains essential for machine learning and artificial intelligence applications. Strategic partnerships with major tech companies secure long-term growth prospects in the expanding AI ecosystem.",
+          sentiment: "bullish",
+          emoji: "🤖",
+          tags: ["Artificial Intelligence", "Data Centers", "GPU", "Machine Learning"],
+          confidence: 92
+        },
+        casual: {
+          title: "NVIDIA is the Pickaxe Seller of the AI Gold Rush",
+          content: "Everyone wants AI, and guess who's selling the shovels? NVIDIA! Their GPUs are basically the brains behind every AI breakthrough. While everyone else is trying to build the next ChatGPT, NVIDIA is making bank selling them the hardware to do it. Smart business!",
+          sentiment: "bullish",
+          emoji: "⛏️",
+          tags: ["AI", "Hardware", "Gold Rush", "Smart"],
+          confidence: 89
+        }
+      },
+      META: {
+        professional: {
+          title: "Meta Platforms Advances Metaverse Vision",
+          content: "Meta Platforms Inc. continues substantial investments in virtual reality and metaverse technologies while maintaining strong social media advertising revenue. Instagram and Facebook user engagement remains high, supporting advertising growth. VR hardware adoption shows promising early-stage development.",
+          sentiment: "neutral",
+          emoji: "🥽",
+          tags: ["Social Media", "VR", "Metaverse", "Advertising"],
+          confidence: 78
+        },
+        casual: {
+          title: "Meta's Betting Big on Virtual Worlds",
+          content: "Mark Zuckerberg is really going all-in on this metaverse thing! While everyone's still scrolling Instagram and Facebook (and making Meta tons of ad money), they're quietly building the future of virtual reality. It's either genius or crazy - maybe both!",
+          sentiment: "neutral",
+          emoji: "�",
+          tags: ["VR", "Social", "Future", "Risky"],
+          confidence: 75
+        }
       }
     };
+
+    const tickerResponses = responses[ticker as keyof typeof responses];
+    const toneResponse = tickerResponses?.[tone as keyof typeof tickerResponses];
     
-    return (mockResponses as any)[tone] || mockResponses.professional;
+    if (toneResponse) {
+      return toneResponse;
+    }
+
+    // Generic fallback with ticker name
+    return {
+      title: `${ticker} Shows Market Resilience`,
+      content: `${ticker} demonstrates stable performance in current market conditions. The company maintains solid fundamentals with consistent operational execution. Investors continue to monitor key metrics and strategic developments for future growth potential.`,
+      sentiment: "neutral",
+      emoji: "📊",
+      tags: ["Market", "Stability", "Fundamentals", "Performance"],
+      confidence: 70
+    };
   }
 
   /**
@@ -224,17 +333,31 @@ Respond in JSON format:
    */
   private async fetchStockData(ticker: string) {
     try {
-      const response = await fetch(`/api/finnhub/quote?symbol=${ticker}`);
+      const response = await fetch(`${this.baseUrl}/api/finnhub/quote/${ticker}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch quote data');
+      }
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch quote data');
+      }
+      
+      const quote = data.data;
+      
       return {
-        currentPrice: data.c || 0,
-        change: data.d || 0,
-        changePercent: data.dp || 0,
-        volume: data.volume || 0,
-        marketCap: data.marketCapitalization || 0,
-        high52Week: data.h || 0,
-        low52Week: data.l || 0
+        currentPrice: quote.currentPrice || 0,
+        change: quote.change || 0,
+        changePercent: quote.changePercent || 0,
+        volume: quote.volume || 0,
+        marketCap: quote.marketCap || 0,
+        high52Week: quote.high || 0,
+        low52Week: quote.low || 0
       };
     } catch (error) {
       console.error(`Error fetching stock data for ${ticker}:`, error);
@@ -252,26 +375,138 @@ Respond in JSON format:
   }
 
   /**
-   * Fetch news headlines from Benzinga API
+   * Generate diverse news specific to each ticker
+   */
+  private generateDiverseNewsForTicker(ticker: string) {
+    const newsTemplates = {
+      AAPL: [
+        {
+          title: "Apple Unveils Revolutionary iPhone Features Ahead of Holiday Season",
+          summary: "Apple's latest technological innovations demonstrate continued market leadership in premium smartphone segment with enhanced AI capabilities and battery life improvements.",
+          source: "TechCrunch"
+        },
+        {
+          title: "Apple Services Revenue Hits New Milestone, App Store Growth Accelerates",
+          summary: "Strong performance in digital services continues to diversify Apple's revenue streams, with subscription services showing robust growth metrics.",
+          source: "Bloomberg Technology"
+        }
+      ],
+      GOOGL: [
+        {
+          title: "Google Cloud Wins Major Enterprise Contracts, AI Integration Drives Growth",
+          summary: "Alphabet's cloud division secures significant partnerships while advanced AI features attract more businesses to Google's cloud infrastructure.",
+          source: "Forbes"
+        },
+        {
+          title: "YouTube Advertising Revenue Surges as Creator Economy Expands",
+          summary: "Strong digital advertising trends benefit Google's video platform, with new monetization features driving creator engagement and revenue growth.",
+          source: "Ad Age"
+        }
+      ],
+      MSFT: [
+        {
+          title: "Microsoft Azure Gains Market Share in Enterprise Cloud Computing",
+          summary: "Strong demand for cloud services and AI-powered business solutions continues to drive Microsoft's growth in the competitive enterprise market.",
+          source: "ZDNet"
+        },
+        {
+          title: "Microsoft 365 Subscription Growth Outpaces Expectations in Q3",
+          summary: "Enterprise software demand remains robust as businesses continue digital transformation initiatives, boosting Microsoft's recurring revenue model.",
+          source: "Business Insider"
+        }
+      ],
+      TSLA: [
+        {
+          title: "Tesla Supercharger Network Expansion Accelerates Global EV Adoption",
+          summary: "Strategic infrastructure investments position Tesla as a key player in the electric vehicle ecosystem beyond just manufacturing.",
+          source: "Electrek"
+        },
+        {
+          title: "Tesla Autopilot Technology Receives Safety Certification Updates",
+          summary: "Continued improvements in autonomous driving capabilities strengthen Tesla's competitive advantage in the premium EV market.",
+          source: "Reuters Auto"
+        }
+      ],
+      NVDA: [
+        {
+          title: "NVIDIA Data Center Revenue Soars on AI Chip Demand",
+          summary: "Unprecedented demand for AI processing power drives record-breaking performance in NVIDIA's data center business segment.",
+          source: "VentureBeat"
+        },
+        {
+          title: "NVIDIA Partners with Major Tech Giants for Next-Gen AI Computing",
+          summary: "Strategic partnerships strengthen NVIDIA's position in the rapidly expanding artificial intelligence hardware market.",
+          source: "TechRadar"
+        }
+      ],
+      META: [
+        {
+          title: "Meta's VR Division Reports Strong User Engagement Growth",
+          summary: "Virtual reality platform adoption accelerates as Meta continues investing heavily in metaverse infrastructure and user experience.",
+          source: "The Verge"
+        },
+        {
+          title: "Instagram Reels Advertising Revenue Exceeds Expectations",
+          summary: "Short-form video content continues to drive advertising growth, positioning Meta competitively against TikTok in the social media market.",
+          source: "Social Media Today"
+        }
+      ]
+    };
+
+    // Get ticker-specific news or use generic template
+    const tickerNews = newsTemplates[ticker as keyof typeof newsTemplates];
+    if (tickerNews) {
+      return tickerNews.map((news, index) => ({
+        ...news,
+        url: "#",
+        publishedAt: new Date(Date.now() - (index + 1) * 3600000).toISOString() // Stagger by hours
+      }));
+    }
+
+    // Generic fallback for other tickers
+    const genericTemplates = [
+      {
+        title: `${ticker} Reports Strong Quarterly Earnings Beat`,
+        summary: `${ticker} demonstrates resilient performance with revenue growth exceeding analyst expectations and positive forward guidance.`,
+        source: "Financial Times"
+      },
+      {
+        title: `Institutional Investors Increase ${ticker} Holdings`,
+        summary: `Major investment firms show growing confidence in ${ticker}'s long-term prospects amid favorable market conditions.`,
+        source: "Investor's Business Daily"
+      }
+    ];
+
+    return genericTemplates.map((news, index) => ({
+      ...news,
+      url: "#",
+      publishedAt: new Date(Date.now() - (index + 1) * 3600000).toISOString()
+    }));
+  }
+
+  /**
+   * Fetch news headlines from Explorium API
    */
   private async fetchNewsHeadlines(ticker: string) {
     try {
-      const response = await fetch(`/api/news/benzinga?ticker=${ticker}`);
+      const response = await fetch(`${this.baseUrl}/api/news/explorium?ticker=${ticker}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Expected JSON response but got ${contentType}`);
+      }
+      
       const data = await response.json();
       
       return data.news || [];
     } catch (error) {
       console.error(`Error fetching news for ${ticker}:`, error);
-      // Return mock news if API fails
-      return [
-        {
-          title: `${ticker} Shows Strong Performance in Latest Quarter`,
-          summary: "Company reports positive results amid market volatility.",
-          url: "#",
-          publishedAt: new Date().toISOString(),
-          source: "Market News"
-        }
-      ];
+      // Return diverse mock news based on ticker
+      return this.generateDiverseNewsForTicker(ticker);
     }
   }
 
@@ -287,7 +522,7 @@ Respond in JSON format:
 
   /**
    * Get daily story recommendations based on user portfolio and market trends
-   */
+         */
   async getDailyRecommendations(
     userPortfolio: string[],
     tone: 'professional' | 'casual' | 'funny' = 'professional',
