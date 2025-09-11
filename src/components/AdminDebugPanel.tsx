@@ -208,6 +208,18 @@ export default function AdminDebugPanel() {
               <div>🔐 For 2FA user, enter password then TOTP code</div>
               <div>⚙️ Access settings to manage 2FA features</div>
             </div>
+            
+            <button
+              onClick={() => {
+                console.log('🧪 Running credential validation test...');
+                // Test the credentials programmatically
+                window.dispatchEvent(new CustomEvent('testDemoCredentials'));
+              }}
+              className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Test Credentials in Console
+            </button>
           </div>
         </div>
       </motion.div>

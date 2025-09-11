@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Moon, Sparkles } from 'lucide-react';
+import { Palette, Brush, Sparkles } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface ThemeToggleProps {
@@ -74,15 +74,15 @@ export default function ThemeToggle({
           <AnimatePresence mode="wait">
             {theme === 'dark' ? (
               <motion.div
-                key="sun"
+                key="palette"
                 initial={{ scale: 0, rotate: -180, opacity: 0 }}
                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
                 exit={{ scale: 0, rotate: 180, opacity: 0 }}
                 transition={{ duration: 0.4, ease: 'easeInOut' }}
                 className="absolute inset-0 flex items-center justify-center"
               >
-                <Sun className={`${iconSize[size]} text-amber-500 drop-shadow-sm`} />
-                {/* Sun rays animation */}
+                <Palette className={`${iconSize[size]} text-amber-500 drop-shadow-sm`} />
+                {/* Color splash animation */}
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
@@ -93,15 +93,15 @@ export default function ThemeToggle({
               </motion.div>
             ) : (
               <motion.div
-                key="moon"
+                key="brush"
                 initial={{ scale: 0, rotate: 180, opacity: 0 }}
                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
                 exit={{ scale: 0, rotate: -180, opacity: 0 }}
                 transition={{ duration: 0.4, ease: 'easeInOut' }}
                 className="absolute inset-0 flex items-center justify-center"
               >
-                <Moon className={`${iconSize[size]} text-blue-400 drop-shadow-sm`} />
-                {/* Twinkle effect */}
+                <Brush className={`${iconSize[size]} text-blue-400 drop-shadow-sm`} />
+                {/* Paint drip effect */}
                 <motion.div
                   animate={{ opacity: [0.3, 0.8, 0.3] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
