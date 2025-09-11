@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, 
@@ -16,12 +16,23 @@ import {
   MessageSquare,
   Bell
 } from 'lucide-react';
+import RealTimeActivityFeed from './RealTimeActivityFeed';
+import { activityLogger } from '@/services/activityLoggingService';
 
 interface DashboardOverviewProps {
   className?: string;
 }
 
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({ className = '' }) => {
+  // Generate sample activities on first load
+  useEffect(() => {
+    const hasGeneratedSample = localStorage.getItem('admin-sample-activities-generated');
+    if (!hasGeneratedSample) {
+      activityLogger.generateSampleActivities();
+      localStorage.setItem('admin-sample-activities-generated', 'true');
+    }
+  }, []);
+
   const stats = [
     {
       title: 'Total Users',
@@ -263,6 +274,16 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ className = '' })
         </motion.div>
       </div>
 
+      {/* Real-time Activity Feed */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="mb-8"
+      >
+        <RealTimeActivityFeed className="h-96" maxItems={20} />
+      </motion.div>
+
       {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -271,17 +292,42 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ className = '' })
         className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white"
       >
         <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { icon: Users, label: 'Manage Users', description: 'Add, edit, or remove users' },
-            { icon: Brain, label: 'Create Quiz', description: 'Generate new AI quiz content' },
-            { icon: Bell, label: 'Send Notification', description: 'Broadcast to all users' }
+            { 
+              icon: Users, 
+              label: 'Manage Users', 
+              description: 'Add, edit, or remove users',
+              onClick: () => console.log('Navigate to users')
+            },
+            { 
+              icon: Brain, 
+              label: 'Create Quiz', 
+              description: 'Generate new AI quiz content',
+              onClick: () => console.log('Navigate to quiz creation')
+            },
+            { 
+              icon: Bell, 
+              label: 'Send Notification', 
+              description: 'Broadcast to all users',
+              onClick: () => console.log('Open notification panel')
+            },
+            { 
+              icon: Activity, 
+              label: 'Generate Sample Data', 
+              description: 'Create test activity data',
+              onClick: () => {
+                activityLogger.generateSampleActivities();
+                alert('Sample activities generated! Check the activity feed.');
+              }
+            }
           ].map((action, index) => (
             <motion.button
               key={action.label}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.6 + index * 0.1 }}
+              onClick={action.onClick}
               className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 hover:bg-opacity-30 transition-all duration-200 text-left"
             >
               <action.icon className="w-6 h-6 mb-2" />

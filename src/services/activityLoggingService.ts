@@ -89,12 +89,104 @@ export interface ActivitySummary {
   activityTrend: 'increasing' | 'decreasing' | 'stable';
 }
 
+// New comprehensive activity interfaces
+export interface SearchActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  searchQuery: string;
+  searchCategory: 'news' | 'quiz' | 'general';
+  resultsCount: number;
+  selectedResult?: string;
+  timestamp: Date;
+  timeSpent: number;
+  deviceInfo: DeviceInfo;
+}
+
+export interface NavigationActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  fromPage: string;
+  toPage: string;
+  timeSpent: number; // seconds spent on previous page
+  timestamp: Date;
+  deviceInfo: DeviceInfo;
+  navigationMethod: 'click' | 'direct' | 'back' | 'forward';
+}
+
+export interface LoginActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  loginTime: Date;
+  loginMethod: 'email' | 'social' | 'guest';
+  deviceInfo: DeviceInfo;
+  ipAddress?: string;
+  success: boolean;
+  failureReason?: string;
+}
+
+export interface LogoutActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  logoutTime: Date;
+  sessionDuration: number; // seconds
+  totalActivities: number;
+  deviceInfo: DeviceInfo;
+}
+
+export interface SystemEventActivity {
+  id: string;
+  userId?: string;
+  eventType: 'page_load' | 'error' | 'performance' | 'export' | 'share' | 'bookmark';
+  eventDescription: string;
+  metadata: Record<string, any>;
+  timestamp: Date;
+  severity: 'info' | 'warning' | 'error';
+}
+
+export interface UserEngagementActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  engagementType: 'scroll' | 'click' | 'hover' | 'focus' | 'copy' | 'download';
+  targetElement: string;
+  targetPage: string;
+  engagementDuration: number;
+  timestamp: Date;
+  additionalData?: Record<string, any>;
+}
+
+export interface DeviceInfo {
+  isMobile: boolean;
+  browser: string;
+  os: string;
+  screenResolution?: string;
+  userAgent?: string;
+}
+
 class ActivityLoggingService {
   private newsViewActivities: NewsViewActivity[] = [];
   private quizAttemptActivities: QuizAttemptActivity[] = [];
   private userSessionActivities: UserSessionActivity[] = [];
+  private searchActivities: SearchActivity[] = [];
+  private navigationActivities: NavigationActivity[] = [];
+  private loginActivities: LoginActivity[] = [];
+  private logoutActivities: LogoutActivity[] = [];
+  private systemEventActivities: SystemEventActivity[] = [];
+  private userEngagementActivities: UserEngagementActivity[] = [];
   private subscribers: Array<(data: any) => void> = [];
   private currentUser: DatabaseUser | null = null;
+  private currentSessionStart: Date | null = null;
+  private currentPage: string = '';
+  private pageStartTime: Date | null = null;
 
   constructor() {
     this.loadActivitiesFromStorage();
@@ -119,7 +211,13 @@ class ActivityLoggingService {
       callback({
         newsActivities: this.newsViewActivities,
         quizActivities: this.quizAttemptActivities,
-        sessionActivities: this.userSessionActivities
+        sessionActivities: this.userSessionActivities,
+        searchActivities: this.searchActivities,
+        navigationActivities: this.navigationActivities,
+        loginActivities: this.loginActivities,
+        logoutActivities: this.logoutActivities,
+        systemEventActivities: this.systemEventActivities,
+        userEngagementActivities: this.userEngagementActivities
       });
     });
   }
@@ -248,6 +346,179 @@ class ActivityLoggingService {
     this.notifySubscribers();
   }
 
+  // Enhanced Activity Logging Methods
+
+  // Log user login
+  async logUserLogin(loginMethod: 'email' | 'social' | 'guest', success: boolean, failureReason?: string): Promise<void> {
+    if (!this.currentUser && success) {
+      console.warn('No current user set for login logging');
+      return;
+    }
+
+    const activity: LoginActivity = {
+      id: `login_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: this.currentUser?.id || 'anonymous',
+      userName: this.currentUser?.name || 'Anonymous',
+      userEmail: this.currentUser?.email || 'anonymous',
+      loginTime: new Date(),
+      loginMethod,
+      deviceInfo: this.getDeviceInfo(),
+      success,
+      failureReason
+    };
+
+    this.loginActivities.unshift(activity);
+    
+    if (success) {
+      this.currentSessionStart = new Date();
+    }
+    
+    this.saveActivitiesToStorage();
+    this.notifySubscribers();
+  }
+
+  // Log user logout
+  async logUserLogout(): Promise<void> {
+    if (!this.currentUser) return;
+
+    const sessionDuration = this.currentSessionStart 
+      ? Math.floor((Date.now() - this.currentSessionStart.getTime()) / 1000)
+      : 0;
+
+    const totalActivities = this.getTotalUserActivities(this.currentUser.id);
+
+    const activity: LogoutActivity = {
+      id: `logout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: this.currentUser.id,
+      userName: this.currentUser.name,
+      userEmail: this.currentUser.email,
+      logoutTime: new Date(),
+      sessionDuration,
+      totalActivities,
+      deviceInfo: this.getDeviceInfo()
+    };
+
+    this.logoutActivities.unshift(activity);
+    this.currentSessionStart = null;
+    this.saveActivitiesToStorage();
+    this.notifySubscribers();
+  }
+
+  // Log search activity
+  async logSearchActivity(
+    searchQuery: string, 
+    searchCategory: 'news' | 'quiz' | 'general',
+    resultsCount: number,
+    selectedResult?: string
+  ): Promise<void> {
+    if (!this.currentUser) return;
+
+    const activity: SearchActivity = {
+      id: `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: this.currentUser.id,
+      userName: this.currentUser.name,
+      userEmail: this.currentUser.email,
+      searchQuery,
+      searchCategory,
+      resultsCount,
+      selectedResult,
+      timestamp: new Date(),
+      timeSpent: 0,
+      deviceInfo: this.getDeviceInfo()
+    };
+
+    this.searchActivities.unshift(activity);
+    this.saveActivitiesToStorage();
+    this.notifySubscribers();
+  }
+
+  // Log navigation activity
+  async logNavigation(fromPage: string, toPage: string, navigationMethod: 'click' | 'direct' | 'back' | 'forward'): Promise<void> {
+    if (!this.currentUser) return;
+
+    const timeSpent = this.pageStartTime 
+      ? Math.floor((Date.now() - this.pageStartTime.getTime()) / 1000)
+      : 0;
+
+    const activity: NavigationActivity = {
+      id: `nav_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: this.currentUser.id,
+      userName: this.currentUser.name,
+      userEmail: this.currentUser.email,
+      fromPage,
+      toPage,
+      timeSpent,
+      timestamp: new Date(),
+      deviceInfo: this.getDeviceInfo(),
+      navigationMethod
+    };
+
+    this.navigationActivities.unshift(activity);
+    this.currentPage = toPage;
+    this.pageStartTime = new Date();
+    this.saveActivitiesToStorage();
+    this.notifySubscribers();
+  }
+
+  // Log system events
+  async logSystemEvent(
+    eventType: 'page_load' | 'error' | 'performance' | 'export' | 'share' | 'bookmark',
+    eventDescription: string,
+    metadata: Record<string, any> = {},
+    severity: 'info' | 'warning' | 'error' = 'info'
+  ): Promise<void> {
+    const activity: SystemEventActivity = {
+      id: `system_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: this.currentUser?.id,
+      eventType,
+      eventDescription,
+      metadata,
+      timestamp: new Date(),
+      severity
+    };
+
+    this.systemEventActivities.unshift(activity);
+    this.saveActivitiesToStorage();
+    this.notifySubscribers();
+  }
+
+  // Log user engagement
+  async logUserEngagement(
+    engagementType: 'scroll' | 'click' | 'hover' | 'focus' | 'copy' | 'download',
+    targetElement: string,
+    targetPage: string,
+    engagementDuration: number = 0,
+    additionalData?: Record<string, any>
+  ): Promise<void> {
+    if (!this.currentUser) return;
+
+    const activity: UserEngagementActivity = {
+      id: `engagement_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: this.currentUser.id,
+      userName: this.currentUser.name,
+      userEmail: this.currentUser.email,
+      engagementType,
+      targetElement,
+      targetPage,
+      engagementDuration,
+      timestamp: new Date(),
+      additionalData
+    };
+
+    this.userEngagementActivities.unshift(activity);
+    this.saveActivitiesToStorage();
+    this.notifySubscribers();
+  }
+
+  // Helper method to get total user activities
+  private getTotalUserActivities(userId: string): number {
+    return this.newsViewActivities.filter(a => a.userId === userId).length +
+           this.quizAttemptActivities.filter(a => a.userId === userId).length +
+           this.searchActivities.filter(a => a.userId === userId).length +
+           this.navigationActivities.filter(a => a.userId === userId).length +
+           this.userEngagementActivities.filter(a => a.userId === userId).length;
+  }
+
   // Get activities for admin dashboard
   getNewsViewActivities(filters?: {
     userId?: string;
@@ -366,6 +637,193 @@ class ActivityLoggingService {
       .filter(summary => summary !== null) as ActivitySummary[];
   }
 
+  // Enhanced Activity Getters
+
+  // Get search activities
+  getSearchActivities(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    category?: 'news' | 'quiz' | 'general';
+  }): SearchActivity[] {
+    let activities = [...this.searchActivities];
+
+    if (filters?.userId) {
+      activities = activities.filter(a => a.userId === filters.userId);
+    }
+    if (filters?.dateFrom) {
+      activities = activities.filter(a => a.timestamp >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      activities = activities.filter(a => a.timestamp <= filters.dateTo!);
+    }
+    if (filters?.category) {
+      activities = activities.filter(a => a.searchCategory === filters.category);
+    }
+
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  // Get navigation activities
+  getNavigationActivities(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    fromPage?: string;
+    toPage?: string;
+  }): NavigationActivity[] {
+    let activities = [...this.navigationActivities];
+
+    if (filters?.userId) {
+      activities = activities.filter(a => a.userId === filters.userId);
+    }
+    if (filters?.dateFrom) {
+      activities = activities.filter(a => a.timestamp >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      activities = activities.filter(a => a.timestamp <= filters.dateTo!);
+    }
+    if (filters?.fromPage) {
+      activities = activities.filter(a => a.fromPage === filters.fromPage);
+    }
+    if (filters?.toPage) {
+      activities = activities.filter(a => a.toPage === filters.toPage);
+    }
+
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  // Get login activities
+  getLoginActivities(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    success?: boolean;
+    loginMethod?: 'email' | 'social' | 'guest';
+  }): LoginActivity[] {
+    let activities = [...this.loginActivities];
+
+    if (filters?.userId) {
+      activities = activities.filter(a => a.userId === filters.userId);
+    }
+    if (filters?.dateFrom) {
+      activities = activities.filter(a => a.loginTime >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      activities = activities.filter(a => a.loginTime <= filters.dateTo!);
+    }
+    if (filters?.success !== undefined) {
+      activities = activities.filter(a => a.success === filters.success);
+    }
+    if (filters?.loginMethod) {
+      activities = activities.filter(a => a.loginMethod === filters.loginMethod);
+    }
+
+    return activities.sort((a, b) => b.loginTime.getTime() - a.loginTime.getTime());
+  }
+
+  // Get logout activities
+  getLogoutActivities(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+  }): LogoutActivity[] {
+    let activities = [...this.logoutActivities];
+
+    if (filters?.userId) {
+      activities = activities.filter(a => a.userId === filters.userId);
+    }
+    if (filters?.dateFrom) {
+      activities = activities.filter(a => a.logoutTime >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      activities = activities.filter(a => a.logoutTime <= filters.dateTo!);
+    }
+
+    return activities.sort((a, b) => b.logoutTime.getTime() - a.logoutTime.getTime());
+  }
+
+  // Get system event activities
+  getSystemEventActivities(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    eventType?: 'page_load' | 'error' | 'performance' | 'export' | 'share' | 'bookmark';
+    severity?: 'info' | 'warning' | 'error';
+  }): SystemEventActivity[] {
+    let activities = [...this.systemEventActivities];
+
+    if (filters?.userId) {
+      activities = activities.filter(a => a.userId === filters.userId);
+    }
+    if (filters?.dateFrom) {
+      activities = activities.filter(a => a.timestamp >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      activities = activities.filter(a => a.timestamp <= filters.dateTo!);
+    }
+    if (filters?.eventType) {
+      activities = activities.filter(a => a.eventType === filters.eventType);
+    }
+    if (filters?.severity) {
+      activities = activities.filter(a => a.severity === filters.severity);
+    }
+
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  // Get user engagement activities
+  getUserEngagementActivities(filters?: {
+    userId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    engagementType?: 'scroll' | 'click' | 'hover' | 'focus' | 'copy' | 'download';
+    targetPage?: string;
+  }): UserEngagementActivity[] {
+    let activities = [...this.userEngagementActivities];
+
+    if (filters?.userId) {
+      activities = activities.filter(a => a.userId === filters.userId);
+    }
+    if (filters?.dateFrom) {
+      activities = activities.filter(a => a.timestamp >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      activities = activities.filter(a => a.timestamp <= filters.dateTo!);
+    }
+    if (filters?.engagementType) {
+      activities = activities.filter(a => a.engagementType === filters.engagementType);
+    }
+    if (filters?.targetPage) {
+      activities = activities.filter(a => a.targetPage === filters.targetPage);
+    }
+
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  // Get comprehensive activity data for a user
+  getComprehensiveUserActivity(userId: string): {
+    newsViews: NewsViewActivity[];
+    quizAttempts: QuizAttemptActivity[];
+    searches: SearchActivity[];
+    navigation: NavigationActivity[];
+    logins: LoginActivity[];
+    logouts: LogoutActivity[];
+    engagement: UserEngagementActivity[];
+    totalActivities: number;
+  } {
+    return {
+      newsViews: this.getNewsViewActivities({ userId }),
+      quizAttempts: this.getQuizAttemptActivities({ userId }),
+      searches: this.getSearchActivities({ userId }),
+      navigation: this.getNavigationActivities({ userId }),
+      logins: this.getLoginActivities({ userId }),
+      logouts: this.getLogoutActivities({ userId }),
+      engagement: this.getUserEngagementActivities({ userId }),
+      totalActivities: this.getTotalUserActivities(userId)
+    };
+  }
+
   // Private helper methods
   private startTrackingNewsView(activityId: string) {
     const startTime = Date.now();
@@ -447,6 +905,12 @@ class ActivityLoggingService {
       localStorage.setItem('newsViewActivities', JSON.stringify(this.newsViewActivities.slice(0, 1000))); // Keep last 1000
       localStorage.setItem('quizAttemptActivities', JSON.stringify(this.quizAttemptActivities.slice(0, 1000)));
       localStorage.setItem('userSessionActivities', JSON.stringify(this.userSessionActivities.slice(0, 500)));
+      localStorage.setItem('searchActivities', JSON.stringify(this.searchActivities.slice(0, 1000)));
+      localStorage.setItem('navigationActivities', JSON.stringify(this.navigationActivities.slice(0, 1000)));
+      localStorage.setItem('loginActivities', JSON.stringify(this.loginActivities.slice(0, 500)));
+      localStorage.setItem('logoutActivities', JSON.stringify(this.logoutActivities.slice(0, 500)));
+      localStorage.setItem('systemEventActivities', JSON.stringify(this.systemEventActivities.slice(0, 1000)));
+      localStorage.setItem('userEngagementActivities', JSON.stringify(this.userEngagementActivities.slice(0, 2000)));
     } catch (error) {
       console.warn('Failed to save activities to localStorage:', error);
     }
@@ -457,6 +921,12 @@ class ActivityLoggingService {
       const newsActivities = localStorage.getItem('newsViewActivities');
       const quizActivities = localStorage.getItem('quizAttemptActivities');
       const sessionActivities = localStorage.getItem('userSessionActivities');
+      const searchActivities = localStorage.getItem('searchActivities');
+      const navigationActivities = localStorage.getItem('navigationActivities');
+      const loginActivities = localStorage.getItem('loginActivities');
+      const logoutActivities = localStorage.getItem('logoutActivities');
+      const systemEventActivities = localStorage.getItem('systemEventActivities');
+      const userEngagementActivities = localStorage.getItem('userEngagementActivities');
 
       if (newsActivities) {
         this.newsViewActivities = JSON.parse(newsActivities).map((a: any) => ({
@@ -481,6 +951,48 @@ class ActivityLoggingService {
           sessionEnd: a.sessionEnd ? new Date(a.sessionEnd) : undefined
         }));
       }
+
+      if (searchActivities) {
+        this.searchActivities = JSON.parse(searchActivities).map((a: any) => ({
+          ...a,
+          timestamp: new Date(a.timestamp)
+        }));
+      }
+
+      if (navigationActivities) {
+        this.navigationActivities = JSON.parse(navigationActivities).map((a: any) => ({
+          ...a,
+          timestamp: new Date(a.timestamp)
+        }));
+      }
+
+      if (loginActivities) {
+        this.loginActivities = JSON.parse(loginActivities).map((a: any) => ({
+          ...a,
+          loginTime: new Date(a.loginTime)
+        }));
+      }
+
+      if (logoutActivities) {
+        this.logoutActivities = JSON.parse(logoutActivities).map((a: any) => ({
+          ...a,
+          logoutTime: new Date(a.logoutTime)
+        }));
+      }
+
+      if (systemEventActivities) {
+        this.systemEventActivities = JSON.parse(systemEventActivities).map((a: any) => ({
+          ...a,
+          timestamp: new Date(a.timestamp)
+        }));
+      }
+
+      if (userEngagementActivities) {
+        this.userEngagementActivities = JSON.parse(userEngagementActivities).map((a: any) => ({
+          ...a,
+          timestamp: new Date(a.timestamp)
+        }));
+      }
     } catch (error) {
       console.warn('Failed to load activities from localStorage:', error);
     }
@@ -491,8 +1003,166 @@ class ActivityLoggingService {
     this.newsViewActivities = [];
     this.quizAttemptActivities = [];
     this.userSessionActivities = [];
+    this.searchActivities = [];
+    this.navigationActivities = [];
+    this.loginActivities = [];
+    this.logoutActivities = [];
+    this.systemEventActivities = [];
+    this.userEngagementActivities = [];
     this.saveActivitiesToStorage();
     this.notifySubscribers();
+  }
+
+  // Generate sample activities for demonstration
+  generateSampleActivities() {
+    const now = new Date();
+    const users = [
+      { id: '1', name: 'John Doe', email: 'john@example.com' },
+      { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
+      { id: '3', name: 'Bob Johnson', email: 'bob@example.com' },
+      { id: '4', name: 'Alice Brown', email: 'alice@example.com' },
+      { id: '5', name: 'Charlie Wilson', email: 'charlie@example.com' }
+    ];
+
+    const newsArticles = [
+      { id: 'news1', title: 'Market Outlook 2025: Tech Stocks Show Promise', category: 'Technology', source: 'Financial Times' },
+      { id: 'news2', title: 'Fed Interest Rate Decision Impact on Markets', category: 'Economy', source: 'Reuters' },
+      { id: 'news3', title: 'AI Stocks Surge as New Regulations Announced', category: 'Technology', source: 'Bloomberg' },
+      { id: 'news4', title: 'Energy Sector Shows Strong Q4 Performance', category: 'Energy', source: 'Wall Street Journal' }
+    ];
+
+    const quizzes = [
+      { id: 'quiz1', title: 'Stock Market Basics', category: 'Investing', difficulty: 'Beginner' },
+      { id: 'quiz2', title: 'Options Trading Fundamentals', category: 'Options', difficulty: 'Intermediate' },
+      { id: 'quiz3', title: 'Technical Analysis', category: 'Analysis', difficulty: 'Advanced' }
+    ];
+
+    // Generate activities from the last 24 hours
+    for (let i = 0; i < 50; i++) {
+      const user = users[Math.floor(Math.random() * users.length)];
+      const timeOffset = Math.random() * 24 * 60 * 60 * 1000; // Random time in last 24 hours
+      const timestamp = new Date(now.getTime() - timeOffset);
+
+      const activityType = Math.random();
+      
+      if (activityType < 0.3) {
+        // News view activity
+        const article = newsArticles[Math.floor(Math.random() * newsArticles.length)];
+        const activity: NewsViewActivity = {
+          id: `news_view_${timestamp.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          newsId: article.id,
+          newsTitle: article.title,
+          newsSource: article.source,
+          newsCategory: article.category,
+          viewedAt: timestamp,
+          timeSpent: Math.floor(Math.random() * 300) + 30, // 30-330 seconds
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          deviceInfo: {
+            isMobile: Math.random() > 0.7,
+            browser: 'Chrome',
+            os: 'Windows'
+          }
+        };
+        this.newsViewActivities.unshift(activity);
+      } else if (activityType < 0.5) {
+        // Quiz activity
+        const quiz = quizzes[Math.floor(Math.random() * quizzes.length)];
+        const isCompleted = Math.random() > 0.3;
+        const activity: QuizAttemptActivity = {
+          id: `quiz_attempt_${timestamp.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          quizId: quiz.id,
+          quizTitle: quiz.title,
+          quizCategory: quiz.category,
+          quizDifficulty: quiz.difficulty,
+          startedAt: timestamp,
+          completedAt: isCompleted ? new Date(timestamp.getTime() + Math.random() * 600000) : undefined,
+          score: isCompleted ? Math.floor(Math.random() * 40) + 60 : 0, // 60-100% for completed
+          totalQuestions: 10,
+          correctAnswers: isCompleted ? Math.floor((Math.random() * 4) + 6) : 0, // 6-10 correct
+          timeSpent: Math.floor(Math.random() * 900) + 300, // 5-20 minutes
+          answers: [],
+          isCompleted,
+          deviceInfo: {
+            isMobile: Math.random() > 0.7,
+            browser: 'Chrome',
+            os: 'Windows'
+          }
+        };
+        this.quizAttemptActivities.unshift(activity);
+      } else if (activityType < 0.7) {
+        // Search activity
+        const searchTerms = ['AAPL', 'Tesla stock', 'bitcoin price', 'dividend stocks', 'market analysis', 'S&P 500'];
+        const term = searchTerms[Math.floor(Math.random() * searchTerms.length)];
+        const activity: SearchActivity = {
+          id: `search_${timestamp.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          searchQuery: term,
+          searchCategory: 'general',
+          resultsCount: Math.floor(Math.random() * 50) + 10,
+          timeSpent: Math.floor(Math.random() * 60) + 5, // 5-65 seconds
+          timestamp,
+          deviceInfo: {
+            isMobile: Math.random() > 0.7,
+            browser: 'Chrome',
+            os: 'Windows'
+          }
+        };
+        this.searchActivities.unshift(activity);
+      } else {
+        // Login activity
+        const activity: LoginActivity = {
+          id: `login_${timestamp.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          loginTime: timestamp,
+          loginMethod: Math.random() > 0.8 ? 'social' : 'email',
+          success: Math.random() > 0.05, // 95% success rate
+          ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`,
+          deviceInfo: {
+            isMobile: Math.random() > 0.7,
+            browser: 'Chrome',
+            os: 'Windows'
+          }
+        };
+        this.loginActivities.unshift(activity);
+      }
+    }
+
+    // Add some system events
+    const systemEvent1: SystemEventActivity = {
+      id: `system_${now.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
+                eventType: 'error',
+      eventDescription: 'Application server started successfully',
+      severity: 'info',
+      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
+      userId: undefined,
+      metadata: { server: 'web-01', version: '1.0.0' }
+    };
+    this.systemEventActivities.unshift(systemEvent1);
+
+    const systemEvent2: SystemEventActivity = {
+      id: `system_${now.getTime() + 1}_${Math.random().toString(36).substr(2, 9)}`,
+      eventType: 'performance',
+      eventDescription: 'Daily database backup completed',
+      severity: 'info',
+      timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000), // 6 hours ago
+      userId: undefined,
+      metadata: { backup_size: '2.1GB', duration: '45s' }
+    };
+    this.systemEventActivities.unshift(systemEvent2);
+
+    this.saveActivitiesToStorage();
+    this.notifySubscribers();
+    console.log('Sample activities generated successfully');
   }
 }
 

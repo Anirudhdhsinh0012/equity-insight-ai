@@ -19,8 +19,9 @@ import {
   Star
 } from 'lucide-react';
 import customerNewsService, { CustomerNewsArticle } from '@/services/customerNewsService';
-import activityLogger from '@/services/activityLoggingService';
+import { activityLogger } from '@/services/activityLoggingService';
 import { DatabaseUser } from '@/services/realTimeDataService';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 interface CustomerNewsProps {
   currentUser?: DatabaseUser | null;
@@ -36,6 +37,22 @@ const CustomerNews: React.FC<CustomerNewsProps> = ({ currentUser, className = ''
   const [selectedArticle, setSelectedArticle] = useState<CustomerNewsArticle | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showBreakingOnly, setShowBreakingOnly] = useState(false);
+
+  // Initialize session tracking
+  const {
+    sessionStartTime,
+    lastActivityTime,
+    startSession,
+    endSession,
+    updateLastActivity,
+    trackEngagementActivity
+  } = useSessionTracking({
+    user: currentUser || null,
+    autoStartSession: false, // Let parent component handle session
+    trackPageViews: false,   // This is a component, not a page
+    trackEngagement: true,
+    sessionTimeoutMinutes: 30
+  });
 
   const categories = [
     { value: 'all', label: 'All News', icon: Globe },
@@ -98,17 +115,80 @@ const CustomerNews: React.FC<CustomerNewsProps> = ({ currentUser, className = ''
         article.source,
         article.category
       );
+
+      // Track article click engagement
+      await activityLogger.logUserEngagement('click', 'news-article', 'news', 0, {
+        articleId: article.id,
+        articleTitle: article.title,
+        source: article.source,
+        category: article.category,
+        isBreaking: article.isBreaking,
+        sentiment: article.sentiment,
+        publishedAt: article.publishedAt
+      });
     }
   };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    const startTime = performance.now();
+    
     try {
       await customerNewsService.forceRefresh();
+      
+      // Track performance metric
+      if (currentUser) {
+        await activityLogger.logSystemEvent('performance', 'news-refresh-time', { duration: performance.now() - startTime });
+        await activityLogger.logUserEngagement('click', 'news-refresh-button', 'news', 0);
+      }
     } catch (error) {
       console.error('Failed to refresh news:', error);
+      
+      // Track error
+      if (currentUser) {
+        await activityLogger.logSystemEvent('error', 'news-refresh', { error: (error as Error).message }, 'error');
+      }
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Enhanced search function with activity tracking
+  const handleSearch = async (term: string) => {
+    setSearchTerm(term);
+    
+    if (currentUser && term.trim()) {
+      await activityLogger.logSearchActivity(term, 'news', filteredArticles.length);
+      await activityLogger.logUserEngagement('click', 'news-search', 'news', 0, {
+        searchTerm: term,
+        resultCount: filteredArticles.length
+      });
+    }
+  };
+
+  // Enhanced category filter with activity tracking
+  const handleCategoryFilter = async (category: string) => {
+    setSelectedCategory(category);
+    
+    if (currentUser) {
+      await activityLogger.logSearchActivity(`category:${category}`, 'news', filteredArticles.length);
+      await activityLogger.logUserEngagement('click', 'news-category-filter', 'news', 0, {
+        selectedCategory: category,
+        resultCount: filteredArticles.length
+      });
+    }
+  };
+
+  // Enhanced breaking news filter with activity tracking
+  const handleBreakingNewsToggle = async () => {
+    const newValue = !showBreakingOnly;
+    setShowBreakingOnly(newValue);
+    
+    if (currentUser) {
+      await activityLogger.logUserEngagement('click', 'breaking-news-toggle', 'news', 0, {
+        showBreakingOnly: newValue,
+        breakingNewsCount: articles.filter(a => a.isBreaking).length
+      });
     }
   };
 
@@ -164,7 +244,7 @@ const CustomerNews: React.FC<CustomerNewsProps> = ({ currentUser, className = ''
         </div>
         <div className="flex items-center gap-3 mt-4 lg:mt-0">
           <button
-            onClick={() => setShowBreakingOnly(!showBreakingOnly)}
+            onClick={() => handleBreakingNewsToggle()}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               showBreakingOnly 
                 ? 'bg-red-500 text-white' 
@@ -220,7 +300,7 @@ const CustomerNews: React.FC<CustomerNewsProps> = ({ currentUser, className = ''
               type="text"
               placeholder="Search news..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
@@ -234,7 +314,7 @@ const CustomerNews: React.FC<CustomerNewsProps> = ({ currentUser, className = ''
                 return (
                   <button
                     key={category.value}
-                    onClick={() => setSelectedCategory(category.value)}
+                    onClick={() => handleCategoryFilter(category.value)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                       selectedCategory === category.value
                         ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'

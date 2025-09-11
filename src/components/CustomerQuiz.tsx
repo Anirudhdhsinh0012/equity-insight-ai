@@ -28,9 +28,10 @@ import {
 } from 'lucide-react';
 import customerQuizService from '@/services/customerQuizService';
 import type { CustomerQuiz, QuizAttempt } from '@/services/customerQuizService';
-import activityLogger from '@/services/activityLoggingService';
+import { activityLogger } from '@/services/activityLoggingService';
 import { DatabaseUser } from '@/services/realTimeDataService';
-
+import { useSessionTracking } from '@/hooks/useSessionTracking';
+  2
 interface CustomerQuizProps {
   currentUser?: DatabaseUser | null;
   className?: string;
@@ -55,6 +56,22 @@ const CustomerQuiz: React.FC<CustomerQuizProps> = ({ currentUser, className = ''
   const [userAttempts, setUserAttempts] = useState<QuizAttempt[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [completedQuiz, setCompletedQuiz] = useState<QuizAttempt | null>(null);
+
+  // Initialize session tracking
+  const {
+    sessionStartTime,
+    lastActivityTime,
+    startSession,
+    endSession,
+    updateLastActivity,
+    trackEngagementActivity
+  } = useSessionTracking({
+    user: currentUser || null,
+    autoStartSession: false, // Let parent component handle session
+    trackPageViews: false,   // This is a component, not a page
+    trackEngagement: true,
+    sessionTimeoutMinutes: 30
+  });
 
   const categories = [
     { value: 'all', label: 'All Categories', icon: BookOpen },
@@ -130,6 +147,43 @@ const CustomerQuiz: React.FC<CustomerQuizProps> = ({ currentUser, className = ''
     return true;
   });
 
+  // Enhanced filter functions with activity tracking
+  const handleCategoryFilter = async (category: string) => {
+    setSelectedCategory(category);
+    
+    if (currentUser) {
+      await activityLogger.logSearchActivity(
+        `category:${category}`,
+        'quiz',
+        filteredQuizzes.filter(quiz => category === 'all' || quiz.category === category).length
+      );
+      
+      await activityLogger.logUserEngagement('click', 'quiz-category-filter', 'quiz', 0, {
+        selectedCategory: category,
+        previousCategory: selectedCategory,
+        resultCount: filteredQuizzes.length
+      });
+    }
+  };
+
+  const handleDifficultyFilter = async (difficulty: string) => {
+    setSelectedDifficulty(difficulty);
+    
+    if (currentUser) {
+      await activityLogger.logSearchActivity(
+        `difficulty:${difficulty}`,
+        'quiz',
+        filteredQuizzes.filter(quiz => difficulty === 'all' || quiz.difficulty === difficulty).length
+      );
+      
+      await activityLogger.logUserEngagement('click', 'quiz-difficulty-filter', 'quiz', 0, {
+        selectedDifficulty: difficulty,
+        previousDifficulty: selectedDifficulty,
+        resultCount: filteredQuizzes.length
+      });
+    }
+  };
+
   const startQuiz = async (quiz: CustomerQuiz) => {
     const session: QuizSession = {
       quiz,
@@ -150,16 +204,42 @@ const CustomerQuiz: React.FC<CustomerQuizProps> = ({ currentUser, className = ''
         quiz.category,
         quiz.difficulty
       );
+
+      // Track quiz start engagement
+      await activityLogger.logUserEngagement('click', 'start-quiz-button', 'quiz', 0, {
+        quizId: quiz.id,
+        quizTitle: quiz.title,
+        category: quiz.category,
+        difficulty: quiz.difficulty,
+        estimatedTime: quiz.estimatedTime,
+        totalQuestions: quiz.questions.length
+      });
+
+      // Track performance metric for quiz loading
+      await activityLogger.logSystemEvent('performance', 'quiz-start-time', { duration: Date.now() - performance.now() });
     }
   };
 
-  const selectAnswer = (answerIndex: string) => {
+  const selectAnswer = async (answerIndex: string) => {
     if (!currentSession || currentSession.isCompleted) return;
 
     const newAnswers = [...currentSession.selectedAnswers];
+    const previousAnswer = newAnswers[currentSession.currentQuestionIndex];
     newAnswers[currentSession.currentQuestionIndex] = answerIndex;
     
     setCurrentSession(prev => prev ? { ...prev, selectedAnswers: newAnswers } : null);
+
+    // Track answer selection engagement
+    if (currentUser) {
+      await activityLogger.logUserEngagement('click', 'quiz-answer-selection', 'quiz', 0, {
+        questionIndex: currentSession.currentQuestionIndex,
+        selectedAnswer: answerIndex,
+        previousAnswer: previousAnswer,
+        isAnswerChange: previousAnswer !== null,
+        quizId: currentSession.quiz.id,
+        timeSpentOnQuestion: Date.now() - currentSession.startTime.getTime()
+      });
+    }
   };
 
   const nextQuestion = () => {
@@ -579,7 +659,7 @@ const CustomerQuiz: React.FC<CustomerQuizProps> = ({ currentUser, className = ''
                 return (
                   <button
                     key={category.value}
-                    onClick={() => setSelectedCategory(category.value)}
+                    onClick={() => handleCategoryFilter(category.value)}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                       selectedCategory === category.value
                         ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
@@ -601,7 +681,7 @@ const CustomerQuiz: React.FC<CustomerQuizProps> = ({ currentUser, className = ''
               {difficulties.map(difficulty => (
                 <button
                   key={difficulty.value}
-                  onClick={() => setSelectedDifficulty(difficulty.value)}
+                  onClick={() => handleDifficultyFilter(difficulty.value)}
                   className={`w-full px-3 py-2 rounded-lg text-left transition-colors ${
                     selectedDifficulty === difficulty.value
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'

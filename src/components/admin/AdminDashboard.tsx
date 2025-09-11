@@ -29,8 +29,11 @@ import AIQuizModule from './AIQuizModule';
 import NewsModule from './NewsModule';
 import SettingsModule from './SettingsModule';
 import DashboardOverview from './DashboardOverview';
+import EnhancedAdminActivityDashboard from './EnhancedAdminActivityDashboard';
+import RealTimeActivityFeed from './RealTimeActivityFeed';
+import ActivityAnalytics from './ActivityAnalytics';
 
-export type AdminModules = 'overview' | 'users' | 'shares' | 'quizzes' | 'news' | 'settings';
+export type AdminModules = 'overview' | 'users' | 'shares' | 'quizzes' | 'news' | 'settings' | 'activity' | 'analytics';
 
 interface AdminDashboardProps {
   className?: string;
@@ -75,6 +78,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
         return <AIQuizModule {...moduleProps} />;
       case 'news':
         return <NewsModule {...moduleProps} />;
+      case 'activity':
+        return <EnhancedAdminActivityDashboard {...moduleProps} />;
+      case 'analytics':
+        return <ActivityAnalytics {...moduleProps} />;
       case 'settings':
         return <SettingsModule {...moduleProps} />;
       default:

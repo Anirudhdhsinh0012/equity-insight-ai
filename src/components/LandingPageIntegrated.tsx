@@ -744,10 +744,10 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
               }}
             >
               {/* Glowing Border */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-500 rounded-3xl blur-sm opacity-30 animate-pulse" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-500 rounded-3xl opacity-20 animate-pulse" />
               
               {/* Main Auth Card */}
-              <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md">
+              <div className="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8 w-full max-w-md">
                 {/* Brand Header */}
                 <div className="text-center mb-8">
                   <motion.div
@@ -770,7 +770,7 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                     onClick={() => setIsLogin(true)}
                     className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
                       isLogin 
-                        ? 'bg-emerald-600 text-white shadow-lg' 
+                        ? 'bg-emerald-600 text-white' 
                         : 'text-slate-300 hover:text-white'
                     }`}
                   >
@@ -781,7 +781,7 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                     onClick={() => setIsLogin(false)}
                     className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
                       !isLogin 
-                        ? 'bg-emerald-600 text-white shadow-lg' 
+                        ? 'bg-emerald-600 text-white' 
                         : 'text-slate-300 hover:text-white'
                     }`}
                   >
@@ -983,7 +983,7 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                   <motion.button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-emerald-500/25"
+                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >

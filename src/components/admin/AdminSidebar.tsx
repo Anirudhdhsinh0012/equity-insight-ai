@@ -11,7 +11,9 @@ import {
   BarChart3,
   ChevronLeft,
   Shield,
-  Activity
+  Activity,
+  Zap,
+  Eye
 } from 'lucide-react';
 import { AdminModules } from './AdminDashboard';
 
@@ -34,6 +36,18 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'Overview', 
       icon: BarChart3, 
       color: 'from-blue-500 to-blue-600' 
+    },
+    { 
+      id: 'activity' as AdminModules, 
+      label: 'User Activity', 
+      icon: Activity, 
+      color: 'from-emerald-500 to-emerald-600' 
+    },
+    { 
+      id: 'analytics' as AdminModules, 
+      label: 'Analytics', 
+      icon: Eye, 
+      color: 'from-cyan-500 to-cyan-600' 
     },
     { 
       id: 'users' as AdminModules, 
