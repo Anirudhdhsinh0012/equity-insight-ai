@@ -127,7 +127,7 @@ export class AuthService {
   }
 
   /**
-   * Login user
+   * Login user with enhanced TOTP validation and logging
    */
   static async login(email: string, password: string, twoFactorCode?: string): Promise<{ 
     success: boolean; 
@@ -135,66 +135,115 @@ export class AuthService {
     error?: string;
     requires2FA?: boolean;
     temp2FAToken?: string;
+    validationDetails?: {
+      userSecurityStatus?: any;
+      attemptInfo?: string;
+    };
   }> {
     try {
+      console.log(`[Auth] Login attempt for email: ${email}`);
+      
       const users = this.getUsers();
       const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
       if (!user) {
+        console.warn(`[Auth] Login failed - user not found: ${email}`);
         return { success: false, error: 'Invalid email or password' };
       }
 
       // Verify password
       if (user.password && !this.verifyPassword(password, user.password)) {
+        console.warn(`[Auth] Login failed - invalid password for: ${email}`);
         return { success: false, error: 'Invalid email or password' };
       }
 
       // Check if 2FA is enabled
       const is2FAEnabled = TwoFactorAuthService.is2FAEnabled(user.id);
+      console.log(`[Auth] 2FA status for user ${user.id}: ${is2FAEnabled ? 'enabled' : 'disabled'}`);
       
       if (is2FAEnabled) {
+        // Get user security status for detailed feedback
+        const userSecurityStatus = TwoFactorAuthService.getUserSecurityStatus(user.id);
+        
         // If 2FA code is not provided, return temp token
         if (!twoFactorCode) {
           const tempToken = this.generateTempToken(user);
+          console.log(`[Auth] 2FA required for user ${user.id} - generating temp token`);
           return { 
             success: false, 
             requires2FA: true, 
             temp2FAToken: tempToken,
-            error: '2FA verification required'
+            error: '2FA verification required',
+            validationDetails: {
+              userSecurityStatus,
+              attemptInfo: 'Password verified, 2FA code required'
+            }
           };
         }
         
-        // Verify 2FA code
+        // Verify 2FA code with enhanced validation
+        console.log(`[Auth] Verifying 2FA code for user ${user.id}`);
         const verification = TwoFactorAuthService.verify2FA(user.id, twoFactorCode);
+        
         if (!verification.success) {
-          return { success: false, error: verification.error || 'Invalid 2FA code' };
+          console.warn(`[Auth] 2FA verification failed for user ${user.id}: ${verification.error}`);
+          
+          // Get updated security status after failed attempt
+          const updatedSecurityStatus = TwoFactorAuthService.getUserSecurityStatus(user.id);
+          
+          return { 
+            success: false, 
+            error: verification.error || 'Invalid 2FA code',
+            validationDetails: {
+              userSecurityStatus: updatedSecurityStatus,
+              attemptInfo: `Failed 2FA attempt (${updatedSecurityStatus.failedAttempts} total failures)`
+            }
+          };
         }
+        
+        console.log(`[Auth] 2FA verification successful for user ${user.id}`);
       }
 
       // Create session
       const sessionToken = this.generateSessionToken(user);
       localStorage.setItem(this.SESSION_KEY, sessionToken);
 
+      console.log(`[Auth] Login successful for user ${user.id}`);
+      
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
-      return { success: true, user: userWithoutPassword as User };
+      return { 
+        success: true, 
+        user: userWithoutPassword as User,
+        validationDetails: {
+          attemptInfo: is2FAEnabled ? 'Full 2FA login successful' : 'Standard login successful'
+        }
+      };
     } catch (error) {
+      console.error('[Auth] Login error:', error);
       return { success: false, error: 'Login failed. Please try again.' };
     }
   }
 
   /**
-   * Complete 2FA login with temporary token
+   * Complete 2FA login with temporary token and enhanced validation
    */
   static async complete2FALogin(tempToken: string, twoFactorCode: string): Promise<{
     success: boolean;
     user?: User;
     error?: string;
+    validationDetails?: {
+      userSecurityStatus?: any;
+      attemptInfo?: string;
+    };
   }> {
     try {
+      console.log(`[Auth] Completing 2FA login with temp token`);
+      
       // Validate temp token
       const tempData = this.validateTempToken(tempToken);
       if (!tempData) {
+        console.warn(`[Auth] Invalid or expired temp token provided`);
         return { success: false, error: 'Invalid or expired temporary token' };
       }
 
@@ -202,23 +251,48 @@ export class AuthService {
       const user = users.find(u => u.id === tempData.userId);
       
       if (!user) {
+        console.error(`[Auth] User not found for temp token: ${tempData.userId}`);
         return { success: false, error: 'User not found' };
       }
 
-      // Verify 2FA code
+      console.log(`[Auth] Verifying 2FA code for user ${user.id} in completion flow`);
+      
+      // Verify 2FA code with enhanced validation
       const verification = TwoFactorAuthService.verify2FA(user.id, twoFactorCode);
+      
       if (!verification.success) {
-        return { success: false, error: verification.error || 'Invalid 2FA code' };
+        console.warn(`[Auth] 2FA completion failed for user ${user.id}: ${verification.error}`);
+        
+        // Get security status for detailed feedback
+        const userSecurityStatus = TwoFactorAuthService.getUserSecurityStatus(user.id);
+        
+        return { 
+          success: false, 
+          error: verification.error || 'Invalid 2FA code',
+          validationDetails: {
+            userSecurityStatus,
+            attemptInfo: `2FA completion failed (${userSecurityStatus.failedAttempts} total failures)`
+          }
+        };
       }
 
       // Create session
       const sessionToken = this.generateSessionToken(user);
       localStorage.setItem(this.SESSION_KEY, sessionToken);
 
+      console.log(`[Auth] 2FA login completion successful for user ${user.id}`);
+
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
-      return { success: true, user: userWithoutPassword as User };
+      return { 
+        success: true, 
+        user: userWithoutPassword as User,
+        validationDetails: {
+          attemptInfo: '2FA login completion successful'
+        }
+      };
     } catch (error) {
+      console.error('[Auth] 2FA completion error:', error);
       return { success: false, error: 'Login failed. Please try again.' };
     }
   }
@@ -302,6 +376,68 @@ export class AuthService {
   static logout(): void {
     localStorage.removeItem(this.SESSION_KEY);
     localStorage.removeItem('stockAdvisorUser'); // Remove legacy storage
+    console.log('[Auth] User logged out');
+  }
+
+  /**
+   * Get 2FA validation metrics for current user
+   */
+  static get2FAValidationDetails(userId?: string): {
+    userSecurityStatus?: any;
+    validationMetrics?: any;
+    recentAttempts?: any[];
+  } {
+    try {
+      if (!userId) {
+        const currentUser = this.getCurrentUser();
+        if (!currentUser) return {};
+        userId = currentUser.id;
+      }
+
+      const userSecurityStatus = TwoFactorAuthService.getUserSecurityStatus(userId);
+      const validationMetrics = TwoFactorAuthService.getValidationMetrics();
+      const recentAttempts = TwoFactorAuthService.getValidationHistory(userId, 10);
+
+      return {
+        userSecurityStatus,
+        validationMetrics,
+        recentAttempts
+      };
+    } catch (error) {
+      console.error('[Auth] Error getting 2FA validation details:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Generate comprehensive security report
+   */
+  static generateSecurityReport(): any {
+    try {
+      return TwoFactorAuthService.exportSecurityReport();
+    } catch (error) {
+      console.error('[Auth] Error generating security report:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if user account is locked due to failed 2FA attempts
+   */
+  static isAccountLocked(userId?: string): boolean {
+    try {
+      if (!userId) {
+        const currentUser = this.getCurrentUser();
+        if (!currentUser) return false;
+        userId = currentUser.id;
+      }
+
+      const securityStatus = TwoFactorAuthService.getUserSecurityStatus(userId);
+      return securityStatus.isLocked;
+    } catch (error) {
+      console.error('[Auth] Error checking account lock status:', error);
+      return false;
+    }
   }
 
   /**

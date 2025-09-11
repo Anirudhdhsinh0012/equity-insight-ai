@@ -217,7 +217,91 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Form validation
+  // Listen for test credentials event from debug panel
+  useEffect(() => {
+    const handleTestCredentials = () => {
+      testDemoCredentials();
+    };
+
+    window.addEventListener('testDemoCredentials', handleTestCredentials);
+    return () => window.removeEventListener('testDemoCredentials', handleTestCredentials);
+  }, []);
+
+  // Real-time validation helpers
+  const isEmailValid = (email: string): boolean => {
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    return email.length > 0 && email.length <= 254 && emailRegex.test(email.toLowerCase().trim());
+  };
+
+  const isPasswordValid = (password: string, isLoginMode: boolean): boolean => {
+    if (isLoginMode) {
+      return password.length >= 6;
+    } else {
+      return password.length >= 8 && 
+             /(?=.*[0-9])/.test(password) && 
+             /(?=.*[!@#$%^&*])/.test(password);
+    }
+  };
+
+  const getPasswordStrength = (password: string): { score: number; text: string; color: string } => {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/(?=.*[a-z])/.test(password)) score++;
+    if (/(?=.*[A-Z])/.test(password)) score++;
+    if (/(?=.*[0-9])/.test(password)) score++;
+    if (/(?=.*[!@#$%^&*])/.test(password)) score++;
+
+    if (score <= 2) return { score, text: 'Weak', color: 'text-red-500' };
+    if (score === 3) return { score, text: 'Fair', color: 'text-yellow-500' };
+    if (score === 4) return { score, text: 'Good', color: 'text-blue-500' };
+    return { score, text: 'Strong', color: 'text-green-500' };
+  };
+
+  // Test demo credentials function
+  const testDemoCredentials = async () => {
+    console.log('🧪 Testing demo credentials...');
+    
+    const testCases = [
+      { email: 'demo@test.com', password: 'password123', label: 'Demo User (No 2FA)' },
+      { email: 'demo2fa@test.com', password: 'password123', label: 'Demo User (With 2FA)' }
+    ];
+    
+    for (const testCase of testCases) {
+      console.log(`\n📧 Testing: ${testCase.label}`);
+      console.log(`Email: ${testCase.email}, Password: ${testCase.password}`);
+      
+      // Test validation
+      const emailValid = isEmailValid(testCase.email);
+      const passwordValid = isPasswordValid(testCase.password, true); // true for login mode
+      
+      console.log(`✅ Email validation: ${emailValid ? 'PASS' : 'FAIL'}`);
+      console.log(`✅ Password validation: ${passwordValid ? 'PASS' : 'FAIL'}`);
+      
+      if (emailValid && passwordValid) {
+        console.log(`🎯 ${testCase.label} credentials are valid for login`);
+        
+        // Test actual authentication
+        try {
+          const result = await AuthService.login(testCase.email, testCase.password);
+          console.log(`🔐 Auth result:`, result);
+          
+          if (result.success) {
+            console.log(`✅ Login successful for ${testCase.label}`);
+          } else if (result.requires2FA) {
+            console.log(`🔐 2FA required for ${testCase.label}`);
+          } else {
+            console.log(`❌ Login failed: ${result.error}`);
+          }
+        } catch (error) {
+          console.error(`💥 Auth error:`, error);
+        }
+      } else {
+        console.log(`❌ ${testCase.label} credentials failed validation`);
+      }
+    }
+    
+    console.log('\n🔧 Demo credentials test completed!');
+  };
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {
       email: '',
@@ -229,22 +313,32 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
     };
 
     // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     if (!formData.email) {
       newErrors.email = 'Email is required';
-    } else if (!emailRegex.test(formData.email)) {
+    } else if (!emailRegex.test(formData.email.toLowerCase().trim())) {
       newErrors.email = 'Please enter a valid email address';
+    } else if (formData.email.length > 254) {
+      newErrors.email = 'Email address is too long';
     }
 
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[0-9])/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least 1 number';
-    } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least 1 special character';
+    } else if (isLogin) {
+      // For login, just check minimum length
+      if (formData.password.length < 6) {
+        newErrors.password = 'Password must be at least 6 characters';
+      }
+    } else {
+      // For registration, enforce stronger password requirements
+      if (formData.password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters';
+      } else if (!/(?=.*[0-9])/.test(formData.password)) {
+        newErrors.password = 'Password must contain at least 1 number';
+      } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
+        newErrors.password = 'Password must contain at least 1 special character';
+      }
     }
 
     // Registration-specific validation
@@ -283,17 +377,41 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
 
     try {
       if (isLogin) {
-        const result = await AuthService.login(formData.email, formData.password);
+        console.log('[Login] Attempting login with:', { email: formData.email, passwordLength: formData.password.length });
+        
+        const result = await AuthService.login(formData.email.toLowerCase().trim(), formData.password);
+        
+        console.log('[Login] Login result:', { 
+          success: result.success, 
+          requires2FA: result.requires2FA,
+          hasUser: !!result.user,
+          error: result.error 
+        });
+        
         if (result.success && result.user) {
+          console.log('[Login] Login successful, calling onLogin');
           onLogin(result.user);
         } else if (result.requires2FA && result.temp2FAToken) {
           // 2FA is required
+          console.log('[Login] 2FA required, showing 2FA form');
           setTemp2FAToken(result.temp2FAToken);
           setShow2FA(true);
           setIsLoading(false);
           return;
         } else {
-          throw new Error(result.error || 'Login failed');
+          // Login failed - provide specific error feedback
+          const errorMessage = result.error || 'Login failed';
+          console.warn('[Login] Login failed:', errorMessage);
+          
+          if (errorMessage.includes('email') || errorMessage.includes('password')) {
+            setErrors({ ...errors, general: 'Invalid email or password. Please check your credentials.' });
+          } else if (errorMessage.includes('2FA') || errorMessage.includes('locked')) {
+            setErrors({ ...errors, general: errorMessage });
+          } else {
+            setErrors({ ...errors, general: 'Login failed. Please try again.' });
+          }
+          setIsLoading(false);
+          return;
         }
       } else {
         const result = await AuthService.register({
@@ -626,10 +744,10 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
               }}
             >
               {/* Glowing Border */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-500 rounded-3xl blur-sm opacity-30 animate-pulse" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-500 rounded-3xl opacity-20 animate-pulse" />
               
               {/* Main Auth Card */}
-              <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md">
+              <div className="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8 w-full max-w-md">
                 {/* Brand Header */}
                 <div className="text-center mb-8">
                   <motion.div
@@ -652,7 +770,7 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                     onClick={() => setIsLogin(true)}
                     className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
                       isLogin 
-                        ? 'bg-emerald-600 text-white shadow-lg' 
+                        ? 'bg-emerald-600 text-white' 
                         : 'text-slate-300 hover:text-white'
                     }`}
                   >
@@ -663,7 +781,7 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                     onClick={() => setIsLogin(false)}
                     className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-300 ${
                       !isLogin 
-                        ? 'bg-emerald-600 text-white shadow-lg' 
+                        ? 'bg-emerald-600 text-white' 
                         : 'text-slate-300 hover:text-white'
                     }`}
                   >
@@ -684,8 +802,19 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
                       placeholder="Enter your email"
-                      className="w-full bg-white/10 border border-white/20 rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300 backdrop-blur-sm"
+                      className={`w-full bg-white/10 border rounded-lg py-3 pl-10 pr-4 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300 backdrop-blur-sm ${
+                        formData.email && !isEmailValid(formData.email) 
+                          ? 'border-red-400/50' 
+                          : formData.email && isEmailValid(formData.email)
+                          ? 'border-green-400/50'
+                          : 'border-white/20'
+                      }`}
                     />
+                    {formData.email && !errors.email && isEmailValid(formData.email) && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      </div>
+                    )}
                     {errors.email && (
                       <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
@@ -704,7 +833,13 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
                       placeholder="Enter your password"
-                      className="w-full bg-white/10 border border-white/20 rounded-lg py-3 pl-10 pr-12 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300 backdrop-blur-sm"
+                      className={`w-full bg-white/10 border rounded-lg py-3 pl-10 pr-12 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-300 backdrop-blur-sm ${
+                        formData.password && !isPasswordValid(formData.password, isLogin) 
+                          ? 'border-red-400/50' 
+                          : formData.password && isPasswordValid(formData.password, isLogin)
+                          ? 'border-green-400/50'
+                          : 'border-white/20'
+                      }`}
                     />
                     <button
                       type="button"
@@ -718,6 +853,41 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                         <AlertCircle className="w-3 h-3" />
                         {errors.password}
                       </p>
+                    )}
+                    
+                    {/* Password Strength Indicator for Registration */}
+                    {!isLogin && formData.password && (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-slate-400">Password Strength:</span>
+                          <span className={`text-xs font-medium ${getPasswordStrength(formData.password).color}`}>
+                            {getPasswordStrength(formData.password).text}
+                          </span>
+                        </div>
+                        <div className="w-full bg-white/10 rounded-full h-1.5">
+                          <div 
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              getPasswordStrength(formData.password).score <= 2 ? 'bg-red-500' :
+                              getPasswordStrength(formData.password).score === 3 ? 'bg-yellow-500' :
+                              getPasswordStrength(formData.password).score === 4 ? 'bg-blue-500' : 'bg-green-500'
+                            }`}
+                            style={{ width: `${(getPasswordStrength(formData.password).score / 5) * 100}%` }}
+                          />
+                        </div>
+                        <div className="mt-1 text-xs text-slate-400">
+                          <div className="flex flex-wrap gap-2">
+                            <span className={formData.password.length >= 8 ? 'text-green-400' : 'text-slate-400'}>
+                              ✓ 8+ characters
+                            </span>
+                            <span className={/(?=.*[0-9])/.test(formData.password) ? 'text-green-400' : 'text-slate-400'}>
+                              ✓ Number
+                            </span>
+                            <span className={/(?=.*[!@#$%^&*])/.test(formData.password) ? 'text-green-400' : 'text-slate-400'}>
+                              ✓ Special character
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -813,7 +983,7 @@ const LandingPageIntegrated: React.FC<LandingPageIntegratedProps> = ({ onLogin }
                   <motion.button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-emerald-500/25"
+                    className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >

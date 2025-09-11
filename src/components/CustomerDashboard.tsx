@@ -48,6 +48,11 @@ import NotificationSettingsPanel from './NotificationSettingsPanel';
 import StockAlertManager from './StockAlertManager';
 import WhatsAppHistory from './WhatsAppHistory';
 import RealtimePriceDisplay from './RealtimePriceDisplay';
+import CustomerLearningHub from './CustomerLearningHub';
+import CustomerNews from './CustomerNews';
+import CustomerQuiz from './CustomerQuiz';
+import activityLogger from '@/services/activityLoggingService';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 import HistoricalChart from './HistoricalChart';
 import AIInvestmentStories from './AIInvestmentStories';
 import PersonalityMatch from './PersonalityMatch';
@@ -55,6 +60,7 @@ import ApiQuotaBanner from './ApiQuotaBanner';
 import SettingsPanel from './SettingsPanel';
 import HelpSupport from './HelpSupport';
 import ThemeToggle from './ThemeToggle';
+import AIChatbot from './AIChatbot';
 
 // Import hooks and contexts
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -109,7 +115,7 @@ interface CustomerDashboardProps {
   className?: string;
 }
 
-type ActiveSection = 'dashboard' | 'insights' | 'historical' | 'recommendations' | 'reports' | 'notifications' | 'whatsapp' | 'ai-stories' | 'personality-match' | 'alerts' | 'watchlist' | 'realtime' | 'settings' | 'help';
+type ActiveSection = 'dashboard' | 'insights' | 'historical' | 'recommendations' | 'reports' | 'notifications' | 'whatsapp' | 'ai-stories' | 'personality-match' | 'alerts' | 'watchlist' | 'realtime' | 'settings' | 'help' | 'learning' | 'news' | 'quiz';
 
 // Generate mock notifications
 const generateMockNotifications = (): NotificationItem[] => {
@@ -197,6 +203,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   // Modern UI state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   // Keep isDarkMode in sync with theme context
   const isDarkMode = theme === 'dark';
@@ -219,6 +226,103 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   useEffect(() => {
     loadUserStocks();
   }, [user.id]);
+
+  // Set up activity logging for real user tracking
+  useEffect(() => {
+    // Set current user for activity logging
+    activityLogger.setCurrentUser({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: '',
+      registrationDate: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      status: 'active',
+      portfolioValue: 0,
+      totalTrades: 0,
+      watchlistItems: 0,
+      quizzesCompleted: 0,
+      subscriptionTier: 'free',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    // Log navigation to dashboard
+    activityLogger.logNavigation(
+      'login',
+      'dashboard',
+      'direct'
+    );
+  }, [user]);
+
+  // Initialize session tracking
+  useSessionTracking({
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: '',
+      registrationDate: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      status: 'active',
+      portfolioValue: 0,
+      totalTrades: 0,
+      watchlistItems: 0,
+      quizzesCompleted: 0,
+      subscriptionTier: 'free',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  });
+
+  // Custom navigation handler with activity logging
+  const handleSectionChange = async (newSection: ActiveSection) => {
+    // Log navigation activity
+    await activityLogger.logNavigation(
+      activeSection,
+      newSection,
+      'click'
+    );
+    
+    setActiveSection(newSection);
+  };
+
+  // Enhanced stock operations with activity logging
+  const handleStockSearch = async (query: string, results: any[]) => {
+    // Note: logSearch method needs to be implemented in ActivityLoggingService
+    console.log('Stock search:', query, 'Results:', results.length);
+  };
+
+  const handleStockAdd = async (stock: Stock) => {
+    // Log as click engagement for now since logUserEngagement expects specific types
+    await activityLogger.logUserEngagement(
+      'click',
+      stock.ticker,
+      'portfolio',
+      0,
+      {
+        action: 'stock_add',
+        ticker: stock.ticker,
+        price: stock.buyPrice,
+        quantity: stock.quantity
+      }
+    );
+  };
+
+  const handleStockRemove = async (stock: Stock) => {
+    // Log as click engagement for now
+    await activityLogger.logUserEngagement(
+      'click',
+      stock.ticker,
+      'portfolio',
+      0,
+      {
+        action: 'stock_remove',
+        ticker: stock.ticker,
+        holdingDuration: Date.now() - new Date(stock.buyDate).getTime()
+      }
+    );
+  };
 
   // Calculate portfolio when stocks or prices change
   useEffect(() => {
@@ -308,31 +412,56 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
     });
   };
 
-  const handleAddStock = (ticker: string, name: string) => {
+  const handleAddStock = async (ticker: string, name: string) => {
     const stock: Stock = {
       id: Date.now().toString(),
       userId: user.id,
       ticker: ticker,
       buyDate: new Date(),
       buyPrice: 0, // Will be updated with real-time price
-      quantity: 1,
+      quantity: 1
     };
 
     const updatedStocks = [...stocks, stock];
     setStocks(updatedStocks);
     localStorage.setItem(`stocks_${user.id}`, JSON.stringify(updatedStocks));
     setIsAddModalOpen(false); // Close the modal after adding
+
+    // Log activity
+    await handleStockAdd(stock);
   };
 
-  const handleRemoveStock = (stockId: string) => {
+  const handleRemoveStock = async (stockId: string) => {
+    const stockToRemove = stocks.find(s => s.id === stockId);
     const updatedStocks = stocks.filter(stock => stock.id !== stockId);
     setStocks(updatedStocks);
     localStorage.setItem(`stocks_${user.id}`, JSON.stringify(updatedStocks));
+
+    // Log activity
+    if (stockToRemove) {
+      await handleStockRemove(stockToRemove);
+    }
   };
 
-  const handleStockClick = (stockData: StockDataForCards) => {
+  const handleStockClick = async (stockData: StockDataForCards) => {
     const stock = stocks.find(s => s.ticker === stockData.ticker);
-    if (stock) setSelectedStock(stock);
+    if (stock) {
+      setSelectedStock(stock);
+      
+      // Log stock view activity as click engagement
+      await activityLogger.logUserEngagement(
+        'click',
+        stock.ticker,
+        'stock_detail',
+        0,
+        {
+          action: 'stock_view',
+          ticker: stock.ticker,
+          currentPrice: stockData.currentPrice,
+          changePercent: stockData.changePercent
+        }
+      );
+    }
   };
 
   const handleWatchToggle = (ticker: string) => {
@@ -563,7 +692,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
         return (
           <StockInsights 
             stocks={stocks} 
-            onClose={() => setActiveSection('dashboard')} 
+            onClose={() => handleSectionChange('dashboard')} 
           />
         );
 
@@ -626,6 +755,45 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
       case 'help':
         return <HelpSupport />;
 
+      case 'learning':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-2xl font-bold ${colors.text.primary}`}>Learning Hub</h2>
+              <div className="text-sm text-gray-500">
+                Track your learning progress
+              </div>
+            </div>
+            <CustomerLearningHub />
+          </div>
+        );
+
+      case 'news':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-2xl font-bold ${colors.text.primary}`}>Market News</h2>
+              <div className="text-sm text-gray-500">
+                Stay updated with latest market trends
+              </div>
+            </div>
+            <CustomerNews />
+          </div>
+        );
+
+      case 'quiz':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-2xl font-bold ${colors.text.primary}`}>Investment Quiz</h2>
+              <div className="text-sm text-gray-500">
+                Test your investment knowledge
+              </div>
+            </div>
+            <CustomerQuiz />
+          </div>
+        );
+
       default:
         return (
           <div className="text-center py-12">
@@ -654,7 +822,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
           <PremiumNavigation
             user={{ name: user.name, email: user.email }}
             activeTab={activeSection}
-            onTabChange={(tab) => setActiveSection(tab as ActiveSection)}
+            onTabChange={(tab) => handleSectionChange(tab as ActiveSection)}
             onLogout={onLogout}
             collapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -717,7 +885,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
                   user={{ name: user.name, email: user.email }}
                   activeTab={activeSection}
                   onTabChange={(tab) => {
-                    setActiveSection(tab as ActiveSection);
+                    handleSectionChange(tab as ActiveSection);
                     setShowMobileMenu(false);
                   }}
                   onLogout={onLogout}
@@ -765,6 +933,31 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
               <StockInsights stocks={[selectedStock]} onClose={() => setSelectedStock(null)} />
             </motion.div>
           </motion.div>
+        )}
+
+        {/* AI Chatbot */}
+        <AIChatbot
+          isOpen={isChatbotOpen}
+          onClose={() => setIsChatbotOpen(false)}
+        />
+
+        {/* Floating Chatbot Button */}
+        {!isChatbotOpen && (
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsChatbotOpen(true)}
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full shadow-2xl flex items-center justify-center group"
+            title="AI Assistant"
+          >
+            <MessageSquare className="w-6 h-6" />
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="absolute -bottom-8 right-0 bg-slate-900/90 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              AI Assistant
+            </div>
+          </motion.button>
         )}
       </div> {/* End of relative container */}
     </div>

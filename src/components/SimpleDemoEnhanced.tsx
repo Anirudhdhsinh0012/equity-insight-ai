@@ -198,7 +198,7 @@ const SimpleDemoEnhanced: React.FC = () => {
           />
 
           {/* Main Content Area with Modern Layout */}
-          <div className="ml-80 min-h-screen">
+          <div className="min-h-screen pt-20 lg:pt-0 lg:ml-80 transition-all duration-300">
             {/* Enhanced Dashboard Header */}
             <DashboardHeader
               user={demoUser}
@@ -211,7 +211,7 @@ const SimpleDemoEnhanced: React.FC = () => {
             />
 
             {/* Content Container */}
-            <div className="p-8 pt-4">
+            <div className="p-4 sm:p-6 lg:p-8 pt-4">
               <motion.div
                 key={activeTab}
                 initial={{ opacity: 0, x: 20 }}

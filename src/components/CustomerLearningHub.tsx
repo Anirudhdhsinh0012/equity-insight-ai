@@ -30,9 +30,12 @@ import CustomerQuiz from './CustomerQuiz';
 
 // Import services
 import { DatabaseUser } from '@/services/realTimeDataService';
-import activityLogger from '@/services/activityLoggingService';
+import { activityLogger } from '@/services/activityLoggingService';
 import customerNewsService from '@/services/customerNewsService';
 import customerQuizService from '@/services/customerQuizService';
+
+// Import the session tracking hook
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 interface CustomerLearningHubProps {
   currentUser?: DatabaseUser | null;
@@ -47,6 +50,22 @@ const CustomerLearningHub: React.FC<CustomerLearningHubProps> = ({ currentUser, 
   const [quizCount, setQuizCount] = useState(0);
   const [userActivity, setUserActivity] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize session tracking
+  const {
+    sessionStartTime,
+    lastActivityTime,
+    startSession,
+    endSession,
+    updateLastActivity,
+    trackEngagementActivity
+  } = useSessionTracking({
+    user: currentUser ?? null,
+    autoStartSession: true,
+    trackPageViews: true,
+    trackEngagement: true,
+    sessionTimeoutMinutes: 30
+  });
 
   // Set current user for activity logging
   useEffect(() => {
@@ -102,6 +121,28 @@ const CustomerLearningHub: React.FC<CustomerLearningHubProps> = ({ currentUser, 
       setUserActivity(allActivities);
     }
   }, [currentUser]);
+
+  // Enhanced tab switching with activity tracking
+  const handleTabSwitch = async (tabId: TabType) => {
+    const previousTab = activeTab;
+    setActiveTab(tabId);
+    
+    // Track navigation activity using activityLogger directly
+    await activityLogger.logNavigation(previousTab, tabId, 'click');
+    
+    // Track user engagement using activityLogger directly
+    await activityLogger.logUserEngagement(
+      'click',
+      `tab-${tabId}`,
+      'learning-hub',
+      0,
+      {
+        previousTab,
+        newTab: tabId,
+        timestamp: new Date().toISOString()
+      }
+    );
+  };
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -172,7 +213,7 @@ const CustomerLearningHub: React.FC<CustomerLearningHubProps> = ({ currentUser, 
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as TabType)}
+                  onClick={() => handleTabSwitch(tab.id as TabType)}
                   className={`flex items-center gap-2 px-4 py-4 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -290,7 +331,7 @@ const CustomerLearningHub: React.FC<CustomerLearningHubProps> = ({ currentUser, 
                     Stay updated with the latest market developments, earnings reports, and financial insights.
                   </p>
                   <button
-                    onClick={() => setActiveTab('news')}
+                    onClick={() => handleTabSwitch('news')}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <Eye className="w-4 h-4" />
@@ -309,7 +350,7 @@ const CustomerLearningHub: React.FC<CustomerLearningHubProps> = ({ currentUser, 
                     Test your financial knowledge and improve your trading skills with interactive quizzes.
                   </p>
                   <button
-                    onClick={() => setActiveTab('quizzes')}
+                    onClick={() => handleTabSwitch('quizzes')}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     <Play className="w-4 h-4" />
