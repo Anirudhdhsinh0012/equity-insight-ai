@@ -243,7 +243,9 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-    
+  
+    // Fallback: ensure a Response is always returned
+    return NextResponse.json(null, { status: 204 });
   } catch (error) {
     console.error('Error exporting quota data:', error);
     return NextResponse.json(

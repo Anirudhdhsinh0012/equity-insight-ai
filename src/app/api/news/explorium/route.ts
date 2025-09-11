@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// TODO: Move API key to environment variable (e.g. process.env.EXPLORIUM_API_KEY)
-const EXPLORIUM_API_KEY = 'c118fac8faa941d987aca7da618e7e29';
+// API key pulled from environment. Provide EXPLORIUM_API_KEY in deployment environment.
+const EXPLORIUM_API_KEY = process.env.EXPLORIUM_API_KEY || 'demo_explorium_key';
 // Confirm the base URL. Adjust if vendor uses a different path structure.
 const EXPLORIUM_BASE_URL = 'https://api.explorium.ai/v1';
     

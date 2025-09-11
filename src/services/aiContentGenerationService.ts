@@ -59,8 +59,9 @@ class AIContentGenerationService {
   private newsApiKey: string;
 
   constructor() {
-    this.apiKey = process.env.OPENAI_API_KEY || process.env.CLAUDE_API_KEY || '';
-    this.newsApiKey = 'c118fac8faa941d987aca7da618e7e29'; // Explorium API key
+  this.apiKey = process.env.OPENAI_API_KEY || process.env.CLAUDE_API_KEY || '';
+  // Use environment variable; fall back to empty string in production to avoid accidental leakage
+  this.newsApiKey = process.env.EXPLORIUM_API_KEY || '';
   }
 
   /**

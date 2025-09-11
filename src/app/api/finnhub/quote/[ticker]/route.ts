@@ -10,10 +10,12 @@ import { finnhubService } from '@/services/finnhubService';
  * GET /api/finnhub/quote/[ticker]
  * Get real-time quote for a specific ticker
  */
+// Note: Relaxed context typing to avoid Next.js RouteContext generic mismatch during build
 export async function GET(
   request: NextRequest,
-  { params }: { params: { ticker: string } }
+  context: { params: { ticker?: string } } | any
 ) {
+  const params = (context?.params ?? {}) as { ticker?: string };
   try {
     const { ticker } = params;
     

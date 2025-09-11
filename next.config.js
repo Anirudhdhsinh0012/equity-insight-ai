@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: process.cwd(),
+  eslint: {
+    // Completely disable ESLint checks during production builds per user request
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     // Remove problematic package optimizations
     optimizePackageImports: [],

@@ -219,3 +219,81 @@ For questions and support:
 ---
 
 Built with ❤️ using Next.js, TypeScript, and modern web technologies.
+
+## 🛡️ Production Deployment & Security
+
+### Required Environment Variables
+See `.env.example` for the full list. Create a real `.env` (not committed) with at least:
+
+```
+FINNHUB_API_KEY=...
+OPENAI_API_KEY=... # or CLAUDE_API_KEY
+BENZINGA_API_KEY=...
+WEBHOOK_SECURITY=generated_random_string
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+```
+
+Rotate any keys that were ever committed to the repository (Finnhub, YouTube, Benzinga, Google OAuth etc.).
+
+### Deployment Checklist
+- [ ] Remove demo/mock API fallback values before go-live
+- [ ] Provide real API keys via hosting provider secret manager (Vercel, AWS, etc.)
+- [ ] Enable HTTPS + HTTP->HTTPS redirect
+- [ ] Set `NODE_ENV=production` and run `npm run build`
+- [ ] Configure caching headers for static assets (handled by Next.js defaults)
+- [ ] Monitor build output for any warnings referencing server/client boundary
+
+### Recommended Hardening
+- Use a WAF (Cloudflare / AWS CloudFront) in front of the app
+- Rate-limit API routes (e.g. middleware or edge functions)
+- Add CSP headers (e.g. via `next.config.js` or middleware)
+- Turn off verbose logging in production
+- Implement proper OAuth or JWT-based auth instead of localStorage sessions for multi-user scenarios
+
+### Secret Management
+Never commit actual secrets. Use:
+- Vercel: Project Settings > Environment Variables
+- GitHub Actions: Repository Secrets for CI/CD
+- Local dev: `.env` (listed in `.gitignore`)
+
+Add a pre-commit scan (script below) to catch accidental secrets.
+
+### Local Production Simulation
+```
+npm ci
+npm run build
+npm start
+```
+Then open http://localhost:3000 and verify pages & API routes.
+
+### Optional Docker
+```
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+RUN npm run build
+ENV NODE_ENV=production
+EXPOSE 3000
+CMD ["npm","start"]
+```
+
+Build & run:
+```
+docker build -t stock-advisor-pro .
+docker run -p 3000:3000 --env-file .env stock-advisor-pro
+```
+
+### Monitoring & Observability
+Integrate one of:
+- Vercel Analytics / Speed Insights
+- Log aggregation (Datadog / Logtail / Axiom)
+- Error tracking (Sentry / Highlight)
+
+### Future Improvements
+- Replace ad-hoc session handling with secure server-side auth
+- Move all API key references in code to rely strictly on env (remove any literals)
+- Add integration tests for critical API routes
+- Introduce edge-based caching for read-heavy endpoints
+

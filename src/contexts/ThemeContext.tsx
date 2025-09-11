@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -144,45 +144,43 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
-    // Check for reduced motion preference
+    if (typeof window === 'undefined') return; // SSR guard
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setPrefersReducedMotion(mediaQuery.matches);
-    
-    const handleChange = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
-    };
-    
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   useEffect(() => {
-    // Get saved theme from localStorage or default to dark
-    const savedTheme = localStorage.getItem('stockAdvisorTheme') as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      // Check system preference
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      setTheme(systemTheme);
+    if (typeof window === 'undefined') return; // SSR guard
+    try {
+      const savedTheme = localStorage.getItem('stockAdvisorTheme') as Theme;
+      if (savedTheme) {
+        setTheme(savedTheme);
+      } else {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(systemPrefersDark ? 'dark' : 'light');
+      }
+    } finally {
+      setMounted(true);
     }
-    setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
+    if (typeof window === 'undefined' || !mounted) return;
+    try {
       localStorage.setItem('stockAdvisorTheme', theme);
-      // Apply theme class to document with animation (respecting reduced motion)
       const duration = prefersReducedMotion ? 'duration-0' : 'duration-500';
       document.documentElement.className = `${theme} transition-colors ${duration} ease-in-out`;
-      
-      // Add transition class to body (respecting reduced motion)
       const bodyDuration = prefersReducedMotion ? 'duration-0' : 'duration-500';
       document.body.className = `min-h-screen antialiased transition-all ${bodyDuration} ease-in-out ${
-        theme === 'light' 
-          ? 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900' 
+        theme === 'light'
+          ? 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900'
           : 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white'
       }`;
+    } catch {
+      // ignore errors silently
     }
   }, [theme, mounted, prefersReducedMotion]);
 

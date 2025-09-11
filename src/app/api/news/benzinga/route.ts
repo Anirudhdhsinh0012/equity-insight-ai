@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BENZINGA_API_KEY = 'bz.5VVPUPD6V2NESXDQKPM5A6N7IDFOKBW5';
+// Use environment variable; no hard-coded key
+const BENZINGA_API_KEY = process.env.BENZINGA_API_KEY || 'demo_benzinga_key';
 const BENZINGA_BASE_URL = 'https://api.benzinga.com/api/v2';
 
 export async function GET(request: NextRequest) {

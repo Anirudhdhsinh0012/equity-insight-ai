@@ -1,5 +1,6 @@
 // Activity Logging Service - Real-time tracking of user interactions
 import { DatabaseUser } from '@/services/realTimeDataService';
+import { safeStorage } from '@/services/safeStorage';
 
 export interface NewsViewActivity {
   id: string;
@@ -901,32 +902,33 @@ class ActivityLoggingService {
   }
 
   private saveActivitiesToStorage() {
+    // Use safeStorage abstraction (works in SSR with in-memory fallback)
     try {
-      localStorage.setItem('newsViewActivities', JSON.stringify(this.newsViewActivities.slice(0, 1000))); // Keep last 1000
-      localStorage.setItem('quizAttemptActivities', JSON.stringify(this.quizAttemptActivities.slice(0, 1000)));
-      localStorage.setItem('userSessionActivities', JSON.stringify(this.userSessionActivities.slice(0, 500)));
-      localStorage.setItem('searchActivities', JSON.stringify(this.searchActivities.slice(0, 1000)));
-      localStorage.setItem('navigationActivities', JSON.stringify(this.navigationActivities.slice(0, 1000)));
-      localStorage.setItem('loginActivities', JSON.stringify(this.loginActivities.slice(0, 500)));
-      localStorage.setItem('logoutActivities', JSON.stringify(this.logoutActivities.slice(0, 500)));
-      localStorage.setItem('systemEventActivities', JSON.stringify(this.systemEventActivities.slice(0, 1000)));
-      localStorage.setItem('userEngagementActivities', JSON.stringify(this.userEngagementActivities.slice(0, 2000)));
+      safeStorage.set('newsViewActivities', JSON.stringify(this.newsViewActivities.slice(0, 1000)));
+      safeStorage.set('quizAttemptActivities', JSON.stringify(this.quizAttemptActivities.slice(0, 1000)));
+      safeStorage.set('userSessionActivities', JSON.stringify(this.userSessionActivities.slice(0, 500)));
+      safeStorage.set('searchActivities', JSON.stringify(this.searchActivities.slice(0, 1000)));
+      safeStorage.set('navigationActivities', JSON.stringify(this.navigationActivities.slice(0, 1000)));
+      safeStorage.set('loginActivities', JSON.stringify(this.loginActivities.slice(0, 500)));
+      safeStorage.set('logoutActivities', JSON.stringify(this.logoutActivities.slice(0, 500)));
+      safeStorage.set('systemEventActivities', JSON.stringify(this.systemEventActivities.slice(0, 1000)));
+      safeStorage.set('userEngagementActivities', JSON.stringify(this.userEngagementActivities.slice(0, 2000)));
     } catch (error) {
-      console.warn('Failed to save activities to localStorage:', error);
+      console.warn('Failed to save activities (safeStorage):', error);
     }
   }
 
   private loadActivitiesFromStorage() {
     try {
-      const newsActivities = localStorage.getItem('newsViewActivities');
-      const quizActivities = localStorage.getItem('quizAttemptActivities');
-      const sessionActivities = localStorage.getItem('userSessionActivities');
-      const searchActivities = localStorage.getItem('searchActivities');
-      const navigationActivities = localStorage.getItem('navigationActivities');
-      const loginActivities = localStorage.getItem('loginActivities');
-      const logoutActivities = localStorage.getItem('logoutActivities');
-      const systemEventActivities = localStorage.getItem('systemEventActivities');
-      const userEngagementActivities = localStorage.getItem('userEngagementActivities');
+      const newsActivities = safeStorage.get('newsViewActivities');
+      const quizActivities = safeStorage.get('quizAttemptActivities');
+      const sessionActivities = safeStorage.get('userSessionActivities');
+      const searchActivities = safeStorage.get('searchActivities');
+      const navigationActivities = safeStorage.get('navigationActivities');
+      const loginActivities = safeStorage.get('loginActivities');
+      const logoutActivities = safeStorage.get('logoutActivities');
+      const systemEventActivities = safeStorage.get('systemEventActivities');
+      const userEngagementActivities = safeStorage.get('userEngagementActivities');
 
       if (newsActivities) {
         this.newsViewActivities = JSON.parse(newsActivities).map((a: any) => ({
@@ -994,7 +996,7 @@ class ActivityLoggingService {
         }));
       }
     } catch (error) {
-      console.warn('Failed to load activities from localStorage:', error);
+      console.warn('Failed to load activities (safeStorage):', error);
     }
   }
 

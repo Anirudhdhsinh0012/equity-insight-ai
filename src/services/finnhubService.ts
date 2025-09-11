@@ -61,10 +61,11 @@ class FinnhubService {
   private isProcessingQueue = false;
   private websocket: WebSocket | null = null;
   private subscribedTickers = new Set<string>();
+  private lastWsLog: { [key: string]: number } = {};
 
   constructor() {
     this.apiKey = process.env.FINNHUB_API_KEY || '';
-    this.webhookSecurity = process.env.WEBHOOK_SECURITY || 'd2ojf0pr01qga5g9iocg';
+  this.webhookSecurity = process.env.WEBHOOK_SECURITY || '';
     
     // Debug logging for API key configuration
     console.log('🔑 Finnhub API Key configured:', this.apiKey ? 'YES' : 'NO');
@@ -100,14 +101,14 @@ class FinnhubService {
     try {
       // Don't initialize if API key is missing or invalid
       if (!this.apiKey || this.apiKey === 'your_finnhub_api_key_here') {
-        console.log('Finnhub WebSocket not initialized: API key not configured, using demo data mode');
+        this.logOnce('ws-missing-key', 'Finnhub WebSocket not initialized: API key not configured, using demo data mode');
         return;
       }
 
       this.websocket = new WebSocket(`${this.wsUrl}?token=${this.apiKey}`);
       
       this.websocket.onopen = () => {
-        console.log('Finnhub WebSocket connected');
+        this.logOnce('ws-connected', 'Finnhub WebSocket connected');
         // Subscribe to all tickers that users are tracking
         this.resubscribeToTickers();
       };
@@ -125,17 +126,16 @@ class FinnhubService {
 
       this.websocket.onclose = (event) => {
         if (event.code === 1006 || event.code === 1011 || event.code === 1002) {
-          console.log('Finnhub WebSocket disconnected (likely API key issue or plan limitation), using demo data mode');
+          this.logOnce('ws-perm-close', 'Finnhub WebSocket disconnected (likely API key issue or plan limitation), using demo data mode');
           // Don't try to reconnect if it's an auth/permission issue
           return;
         }
-        console.log('Finnhub WebSocket disconnected, reconnecting in 5 seconds...');
+        this.logOnce('ws-temp-close', 'Finnhub WebSocket disconnected, reconnecting in 5 seconds...');
         setTimeout(() => this.initializeWebSocket(), 5000);
       };
 
-      this.websocket.onerror = (error) => {
-        console.log('Finnhub WebSocket error (likely API key not configured or insufficient permissions), using demo data');
-        // Don't spam the console with WebSocket errors if API key is not configured
+      this.websocket.onerror = () => {
+        this.logOnce('ws-error', 'Finnhub WebSocket error (likely API key not configured or insufficient permissions), using demo data');
       };
     } catch (error) {
       console.error('Failed to initialize WebSocket:', error);
@@ -779,6 +779,14 @@ class FinnhubService {
       low: Number((currentPrice - Math.abs(change) - Math.random() * 2).toFixed(2)),
       timestamp: new Date()
     };
+  }
+
+  private logOnce(key: string, message: string, throttleMs = 10000) {
+    const now = Date.now();
+    if (!this.lastWsLog[key] || now - this.lastWsLog[key] > throttleMs) {
+      this.lastWsLog[key] = now;
+      console.log(message);
+    }
   }
 }
 

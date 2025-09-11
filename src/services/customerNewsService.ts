@@ -265,12 +265,12 @@ class CustomerNewsService {
   // Fetch from existing Benzinga API
   private async fetchFromBenzinga(): Promise<CustomerNewsArticle[]> {
     const articles: CustomerNewsArticle[] = [];
-    
+    const base = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000') : '';
     try {
       for (const stock of this.MAJOR_STOCKS.slice(0, 5)) {
-        const response = await fetch(`/api/news/benzinga?ticker=${stock}&limit=10&days=1`);
+        const url = `${base}/api/news/benzinga?ticker=${stock}&limit=10&days=1`;
+        const response = await fetch(url);
         if (!response.ok) continue;
-        
         const data = await response.json();
         if (data.success && data.news) {
           data.news.forEach((article: any) => {
@@ -281,7 +281,6 @@ class CustomerNewsService {
     } catch (error) {
       console.warn('Benzinga fetch failed:', error);
     }
-
     return articles;
   }
 
@@ -508,6 +507,7 @@ class CustomerNewsService {
   }
 
   private saveArticlesToStorage() {
+    if (typeof window === 'undefined' || !('localStorage' in window)) return; // SSR guard
     try {
       // Save only the last 100 articles to localStorage
       const articlesToSave = this.articles.slice(0, 100);
@@ -518,6 +518,7 @@ class CustomerNewsService {
   }
 
   private loadArticlesFromStorage() {
+    if (typeof window === 'undefined' || !('localStorage' in window)) return; // SSR guard
     try {
       const savedArticles = localStorage.getItem('customerNewsArticles');
       if (savedArticles) {

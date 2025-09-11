@@ -402,8 +402,12 @@ class StockPriceScheduler {
   }
 }
 
-// Singleton instance
-export const stockPriceScheduler = new StockPriceScheduler();
+// Global singleton guard
+const globalAny = global as any;
+if (!globalAny.__STOCK_SCHEDULER_SINGLETON__) {
+  globalAny.__STOCK_SCHEDULER_SINGLETON__ = { instance: new StockPriceScheduler() };
+}
+export const stockPriceScheduler = globalAny.__STOCK_SCHEDULER_SINGLETON__.instance as StockPriceScheduler;
 
 // Auto-start in production
 if (process.env.NODE_ENV === 'production') {

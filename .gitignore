@@ -80,3 +80,9 @@ ehthumbs.db
 Desktop.ini
 
 *.gz
+
+# Sensitive data directories
+data/backups/
+data/*.json
+
+# Security: never commit real secrets. Use .env.example for reference.
