@@ -243,6 +243,23 @@ Rotate any keys that were ever committed to the repository (Finnhub, YouTube, Be
 - [ ] Configure caching headers for static assets (handled by Next.js defaults)
 - [ ] Monitor build output for any warnings referencing server/client boundary
 
+### Authentication Module (Prototype)
+
+The `/login` route now uses a new `AuthCard` component (`src/components/AuthCard.tsx`) providing:
+- Login / Register toggle with client-side validation
+- Accessible form controls & focus styles
+- Glassmorphism UI + gradient accents aligned with design language
+- LocalStorage demo authentication via `AuthService` (NOT production secure)
+
+Before production deployment you MUST:
+1. Replace `AuthService` with real backend endpoints (e.g. /api/auth/login, /api/auth/register) using secure password hashing (bcrypt/argon2) and HTTP-only cookies / JWT rotation.
+2. Add rate limiting + brute force protection.
+3. Implement secure password reset & email verification flows.
+4. Move 2FA logic server-side (current TOTP utilities are client-stubbed for demo) and store secrets encrypted.
+5. Enforce CSP / secure headers and review dependency vulnerabilities.
+
+The current implementation is intentionally lightweight for UI/UX demonstration.
+
 ### Recommended Hardening
 - Use a WAF (Cloudflare / AWS CloudFront) in front of the app
 - Rate-limit API routes (e.g. middleware or edge functions)
