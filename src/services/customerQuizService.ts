@@ -493,6 +493,10 @@ class CustomerQuizService {
 
   private saveQuizzesToStorage(): void {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
       // Keep only last 50 quizzes in storage
       const quizzesToSave = this.quizzes.slice(0, 50);
       localStorage.setItem('customerQuizzes', JSON.stringify(quizzesToSave));
@@ -503,6 +507,10 @@ class CustomerQuizService {
 
   private loadQuizzesFromStorage(): void {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
       const savedQuizzes = localStorage.getItem('customerQuizzes');
       if (savedQuizzes) {
         this.quizzes = JSON.parse(savedQuizzes).map((quiz: any) => ({
@@ -517,6 +525,10 @@ class CustomerQuizService {
 
   private saveAttemptsToStorage(): void {
     try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
       const attempts = Array.from(this.activeAttempts.values());
       localStorage.setItem('quizAttempts', JSON.stringify(attempts.slice(0, 100))); // Keep last 100 attempts
     } catch (error) {

@@ -341,6 +341,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
   }, [stocks, checkPriceAlerts]);
 
   const loadUserStocks = () => {
+    if (typeof window === 'undefined') return; // SSR guard
     const userStocks = JSON.parse(localStorage.getItem(`stocks_${user.id}`) || '[]');
     setStocks(userStocks);
   };

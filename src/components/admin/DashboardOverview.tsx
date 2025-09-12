@@ -26,6 +26,7 @@ interface DashboardOverviewProps {
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({ className = '' }) => {
   // Generate sample activities on first load
   useEffect(() => {
+    if (typeof window === 'undefined') return; // SSR guard
     const hasGeneratedSample = localStorage.getItem('admin-sample-activities-generated');
     if (!hasGeneratedSample) {
       activityLogger.generateSampleActivities();

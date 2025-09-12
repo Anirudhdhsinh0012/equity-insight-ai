@@ -70,7 +70,10 @@ class CustomerNewsService {
 
   constructor() {
     this.loadArticlesFromStorage();
-    this.startAutoRefresh();
+    // Only start auto-refresh in browser environment
+    if (typeof window !== 'undefined') {
+      this.startAutoRefresh();
+    }
   }
 
   // Subscribe to news updates
@@ -265,11 +268,23 @@ class CustomerNewsService {
   // Fetch from existing Benzinga API
   private async fetchFromBenzinga(): Promise<CustomerNewsArticle[]> {
     const articles: CustomerNewsArticle[] = [];
-    const base = typeof window === 'undefined' ? (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000') : '';
+    
+    // Skip in server-side rendering
+    if (typeof window === 'undefined') {
+      return articles;
+    }
+    
+    const base = process.env.NEXT_PUBLIC_BASE_URL || '';
     try {
       for (const stock of this.MAJOR_STOCKS.slice(0, 5)) {
         const url = `${base}/api/news/benzinga?ticker=${stock}&limit=10&days=1`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
         if (!response.ok) continue;
         const data = await response.json();
         if (data.success && data.news) {
@@ -279,7 +294,14 @@ class CustomerNewsService {
         }
       }
     } catch (error) {
-      console.warn('Benzinga fetch failed:', error);
+      // Silently handle connection errors to avoid spamming logs
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn('Benzinga API request timed out');
+      } else if (error && typeof error === 'object' && 'code' in error && error.code === 'ECONNREFUSED') {
+        console.warn('Benzinga API service unavailable');
+      } else {
+        console.warn('Benzinga fetch failed:', error);
+      }
     }
     return articles;
   }

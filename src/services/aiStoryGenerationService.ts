@@ -569,9 +569,11 @@ Respond in JSON format:
       });
       
       // Mock database save
-      const stories = JSON.parse(localStorage.getItem('ai_stories') || '[]');
-      stories.push(story);
-      localStorage.setItem('ai_stories', JSON.stringify(stories));
+      if (typeof window !== 'undefined') {
+        const stories = JSON.parse(localStorage.getItem('ai_stories') || '[]');
+        stories.push(story);
+        localStorage.setItem('ai_stories', JSON.stringify(stories));
+      }
     } catch (error) {
       console.error('Error saving story:', error);
     }
@@ -583,6 +585,7 @@ Respond in JSON format:
   async getStoredStories(limit: number = 10): Promise<StoryData[]> {
     try {
       // In production, this would query your database
+      if (typeof window === 'undefined') return [];
       const stories = JSON.parse(localStorage.getItem('ai_stories') || '[]');
       return stories
         .sort((a: StoryData, b: StoryData) => 

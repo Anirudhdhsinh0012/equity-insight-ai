@@ -109,7 +109,7 @@ const CustomerQuiz: React.FC<CustomerQuizProps> = ({ currentUser, className = ''
 
   // Load user attempts
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && typeof window !== 'undefined') {
       // Since the service doesn't have getUserAttempts, we'll track locally
       const storedAttempts = localStorage.getItem('userQuizAttempts');
       if (storedAttempts) {
@@ -308,9 +308,11 @@ const CustomerQuiz: React.FC<CustomerQuizProps> = ({ currentUser, className = ''
     setShowResults(true);
 
     // Store attempt locally
-    const storedAttempts = JSON.parse(localStorage.getItem('userQuizAttempts') || '[]');
-    storedAttempts.push(attempt);
-    localStorage.setItem('userQuizAttempts', JSON.stringify(storedAttempts));
+    if (typeof window !== 'undefined') {
+      const storedAttempts = JSON.parse(localStorage.getItem('userQuizAttempts') || '[]');
+      storedAttempts.push(attempt);
+      localStorage.setItem('userQuizAttempts', JSON.stringify(storedAttempts));
+    }
 
     // Update user attempts
     setUserAttempts(prev => [...prev, attempt]);

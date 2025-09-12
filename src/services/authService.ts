@@ -55,6 +55,7 @@ export class AuthService {
    */
   private static getUsers(): User[] {
     try {
+      if (typeof window === 'undefined') return []; // SSR guard
       return JSON.parse(localStorage.getItem(this.USERS_KEY) || '[]');
     } catch {
       return [];
@@ -65,7 +66,16 @@ export class AuthService {
    * Save users to storage
    */
   private static saveUsers(users: User[]): void {
+    if (typeof window === 'undefined') return; // SSR guard
     localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
+  }
+
+  /**
+   * Save session token with SSR protection
+   */
+  private static saveSessionToken(token: string): void {
+    if (typeof window === 'undefined') return; // SSR guard
+    localStorage.setItem(this.SESSION_KEY, token);
   }
 
   /**
@@ -116,7 +126,7 @@ export class AuthService {
 
       // Create session
       const sessionToken = this.generateSessionToken(newUser);
-      localStorage.setItem(this.SESSION_KEY, sessionToken);
+      this.saveSessionToken(sessionToken);
 
       // Return user without password
       const { password, ...userWithoutPassword } = newUser;
@@ -206,7 +216,7 @@ export class AuthService {
 
       // Create session
       const sessionToken = this.generateSessionToken(user);
-      localStorage.setItem(this.SESSION_KEY, sessionToken);
+      this.saveSessionToken(sessionToken);
 
       console.log(`[Auth] Login successful for user ${user.id}`);
       
@@ -278,7 +288,7 @@ export class AuthService {
 
       // Create session
       const sessionToken = this.generateSessionToken(user);
-      localStorage.setItem(this.SESSION_KEY, sessionToken);
+      this.saveSessionToken(sessionToken);
 
       console.log(`[Auth] 2FA login completion successful for user ${user.id}`);
 
@@ -337,6 +347,7 @@ export class AuthService {
    */
   static getCurrentUser(): User | null {
     try {
+      if (typeof window === 'undefined') return null; // SSR guard
       const sessionToken = localStorage.getItem(this.SESSION_KEY);
       if (!sessionToken) return null;
 
@@ -498,6 +509,7 @@ export class AuthService {
    */
   static migrateLegacyData(): void {
     try {
+      if (typeof window === 'undefined') return; // SSR guard
       // Check for legacy user data
       const legacyUser = localStorage.getItem('stockAdvisorUser');
       if (legacyUser) {
@@ -514,7 +526,7 @@ export class AuthService {
         
         // Create session for migrated user
         const sessionToken = this.generateSessionToken(user);
-        localStorage.setItem(this.SESSION_KEY, sessionToken);
+        this.saveSessionToken(sessionToken);
         
         // Remove legacy storage
         localStorage.removeItem('stockAdvisorUser');

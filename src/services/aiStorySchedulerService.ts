@@ -355,14 +355,16 @@ class AIStorySchedulerService {
       });
       
       // Store notification in local storage for demo
-      const notifications = JSON.parse(localStorage.getItem('user_notifications') || '[]');
-      notifications.push({
-        ...payload,
-        id: `notif-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        read: false
-      });
-      localStorage.setItem('user_notifications', JSON.stringify(notifications));
+      if (typeof window !== 'undefined') {
+        const notifications = JSON.parse(localStorage.getItem('user_notifications') || '[]');
+        notifications.push({
+          ...payload,
+          id: `notif-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          read: false
+        });
+        localStorage.setItem('user_notifications', JSON.stringify(notifications));
+      }
       
     } catch (error) {
       console.error('Error sending notification:', error);

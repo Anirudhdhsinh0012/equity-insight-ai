@@ -50,6 +50,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
 
   // Initialize theme from localStorage
   useEffect(() => {
+    if (typeof window === 'undefined') return; // SSR guard
     const savedTheme = localStorage.getItem('admin-theme');
     if (savedTheme === 'dark') {
       setDarkMode(true);

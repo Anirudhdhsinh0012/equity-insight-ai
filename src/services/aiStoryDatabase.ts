@@ -48,6 +48,26 @@ class AIStoryDatabase {
     analytics: 'ai_analytics_db'
   };
 
+  // Helper methods for safe localStorage access
+  private safeSetLocalStorage(key: string, value: string): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('Failed to save to localStorage:', error);
+    }
+  }
+
+  private safeGetLocalStorage(key: string): string | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.warn('Failed to read from localStorage:', error);
+      return null;
+    }
+  }
+
   /**
    * Save a story to the database
    */
@@ -74,7 +94,7 @@ class AIStoryDatabase {
       const existingStories = this.getStoredStories();
       existingStories.push(storedStory);
       
-      localStorage.setItem(this.storageKeys.stories, JSON.stringify(existingStories));
+      this.safeSetLocalStorage(this.storageKeys.stories, JSON.stringify(existingStories));
       
       // Update analytics
       this.updateAnalytics('story_generated', {
@@ -170,7 +190,7 @@ class AIStoryDatabase {
           ...engagement
         };
         
-        localStorage.setItem(this.storageKeys.stories, JSON.stringify(stories));
+        this.safeSetLocalStorage(this.storageKeys.stories, JSON.stringify(stories));
       }
     } catch (error) {
       console.error('Error updating story engagement:', error);
@@ -187,7 +207,7 @@ class AIStoryDatabase {
       
       if (storyIndex !== -1) {
         stories[storyIndex].isBookmarked = !stories[storyIndex].isBookmarked;
-        localStorage.setItem(this.storageKeys.stories, JSON.stringify(stories));
+        this.safeSetLocalStorage(this.storageKeys.stories, JSON.stringify(stories));
         return stories[storyIndex].isBookmarked;
       }
       
@@ -217,7 +237,7 @@ class AIStoryDatabase {
         existingPrefs.push(updatedPrefs);
       }
       
-      localStorage.setItem(this.storageKeys.userPreferences, JSON.stringify(existingPrefs));
+      this.safeSetLocalStorage(this.storageKeys.userPreferences, JSON.stringify(existingPrefs));
     } catch (error) {
       console.error('Error saving user preferences:', error);
     }
@@ -250,7 +270,7 @@ class AIStoryDatabase {
         batches.push(batch);
       }
       
-      localStorage.setItem(this.storageKeys.dailyBatches, JSON.stringify(batches));
+      this.safeSetLocalStorage(this.storageKeys.dailyBatches, JSON.stringify(batches));
     } catch (error) {
       console.error('Error saving daily batch:', error);
     }
@@ -332,14 +352,14 @@ class AIStoryDatabase {
       const recentStories = stories.filter(story => 
         new Date(story.timestamp) >= cutoffDate
       );
-      localStorage.setItem(this.storageKeys.stories, JSON.stringify(recentStories));
+      this.safeSetLocalStorage(this.storageKeys.stories, JSON.stringify(recentStories));
       
       // Clean up daily batches
       const batches = this.getDailyBatches();
       const recentBatches = batches.filter(batch => 
         new Date(batch.generatedAt) >= cutoffDate
       );
-      localStorage.setItem(this.storageKeys.dailyBatches, JSON.stringify(recentBatches));
+      this.safeSetLocalStorage(this.storageKeys.dailyBatches, JSON.stringify(recentBatches));
       
       console.log('Database cleanup completed');
     } catch (error) {
@@ -350,7 +370,7 @@ class AIStoryDatabase {
   // Private helper methods
   private getStoredStories(): StoredStory[] {
     try {
-      const stored = localStorage.getItem(this.storageKeys.stories);
+      const stored = this.safeGetLocalStorage(this.storageKeys.stories);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -359,7 +379,7 @@ class AIStoryDatabase {
 
   private getUserPreferences(): UserPreferences[] {
     try {
-      const stored = localStorage.getItem(this.storageKeys.userPreferences);
+      const stored = this.safeGetLocalStorage(this.storageKeys.userPreferences);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -368,7 +388,7 @@ class AIStoryDatabase {
 
   private getDailyBatches(): DailyStoryBatch[] {
     try {
-      const stored = localStorage.getItem(this.storageKeys.dailyBatches);
+      const stored = this.safeGetLocalStorage(this.storageKeys.dailyBatches);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -377,7 +397,7 @@ class AIStoryDatabase {
 
   private getStoredAnalytics(): any[] {
     try {
-      const stored = localStorage.getItem(this.storageKeys.analytics);
+      const stored = this.safeGetLocalStorage(this.storageKeys.analytics);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -399,7 +419,7 @@ class AIStoryDatabase {
         analytics.splice(0, analytics.length - 1000);
       }
       
-      localStorage.setItem(this.storageKeys.analytics, JSON.stringify(analytics));
+      this.safeSetLocalStorage(this.storageKeys.analytics, JSON.stringify(analytics));
     } catch (error) {
       console.error('Error updating analytics:', error);
     }
