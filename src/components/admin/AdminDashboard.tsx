@@ -28,12 +28,15 @@ import SharesModule from './SharesModule';
 import AIQuizModule from './AIQuizModule';
 import NewsModule from './NewsModule';
 import SettingsModule from './SettingsModule';
+import MessagesModule from './MessagesModule';
+import ScheduleModule from './ScheduleModule';
+import PreferencesModule from './PreferencesModule';
 import DashboardOverview from './DashboardOverview';
 import EnhancedAdminActivityDashboard from './EnhancedAdminActivityDashboard';
 import RealTimeActivityFeed from './RealTimeActivityFeed';
 import ActivityAnalytics from './ActivityAnalytics';
 
-export type AdminModules = 'overview' | 'users' | 'shares' | 'quizzes' | 'news' | 'settings' | 'activity' | 'analytics';
+export type AdminModules = 'overview' | 'users' | 'shares' | 'quizzes' | 'news' | 'settings' | 'activity' | 'analytics' | 'messages' | 'schedule' | 'preferences';
 
 interface AdminDashboardProps {
   className?: string;
@@ -48,7 +51,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
   // Initialize theme from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('admin-theme');
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (savedTheme === 'dark') {
       setDarkMode(true);
       document.documentElement.classList.add('dark');
     }
@@ -56,12 +59,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
 
   const toggleTheme = () => {
     setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('admin-theme', !darkMode ? 'dark' : 'light');
+    if (!darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('admin-theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('admin-theme', 'light');
+    }
   };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  // Navigation handlers for navbar menu items
+  const handleNavigateToSettings = () => {
+    setActiveModule('settings');
+  };
+
+  const handleOpenMessages = () => {
+    setActiveModule('messages');
+  };
+
+  const handleOpenSchedule = () => {
+    setActiveModule('schedule');
+  };
+
+  const handleOpenPreferences = () => {
+    setActiveModule('preferences');
   };
 
   const renderActiveModule = () => {
@@ -84,6 +109,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
         return <ActivityAnalytics {...moduleProps} />;
       case 'settings':
         return <SettingsModule {...moduleProps} />;
+      case 'messages':
+        return <MessagesModule {...moduleProps} />;
+      case 'schedule':
+        return <ScheduleModule {...moduleProps} />;
+      case 'preferences':
+        return <PreferencesModule {...moduleProps} />;
       default:
         return <DashboardOverview {...moduleProps} />;
     }
@@ -108,6 +139,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className = '' }) => {
           onToggleTheme={toggleTheme}
           notifications={notifications}
           sidebarOpen={sidebarOpen}
+          onNavigateToSettings={handleNavigateToSettings}
+          onOpenMessages={handleOpenMessages}
+          onOpenSchedule={handleOpenSchedule}
+          onOpenPreferences={handleOpenPreferences}
         />
 
         {/* Page Content */}

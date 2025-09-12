@@ -231,7 +231,7 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ className = '' }) => {
       setIsLoadingData(true);
       const data = await adminSettingsService.getSettings();
       setSettings(data);
-      toast.success('Settings loaded successfully');
+      // Removed automatic success toast on load - only show on user actions
     } catch (error) {
       console.error('Error loading settings:', error);
       toast.error('Failed to load settings', error instanceof Error ? error.message : 'Unknown error');
@@ -1050,6 +1050,9 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ className = '' }) => {
 
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Toast Container - positioned at top level for proper placement */}
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
+      
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -1106,8 +1109,6 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ className = '' }) => {
         transition={{ delay: 0.1 }}
         className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
       >
-        <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
-        
         {/* Tabs */}
         <div className="flex border-b border-slate-200 dark:border-slate-700">
           {tabs.map(tab => (

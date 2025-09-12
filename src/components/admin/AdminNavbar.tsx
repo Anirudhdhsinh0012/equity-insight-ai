@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -23,6 +24,10 @@ interface AdminNavbarProps {
   onToggleTheme: () => void;
   notifications: number;
   sidebarOpen: boolean;
+  onNavigateToSettings?: () => void;
+  onOpenMessages?: () => void;
+  onOpenSchedule?: () => void;
+  onOpenPreferences?: () => void;
 }
 
 const AdminNavbar: React.FC<AdminNavbarProps> = ({
@@ -30,11 +35,49 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({
   darkMode,
   onToggleTheme,
   notifications,
-  sidebarOpen
+  sidebarOpen,
+  onNavigateToSettings,
+  onOpenMessages,
+  onOpenSchedule,
+  onOpenPreferences
 }) => {
+  const router = useRouter();
   const [searchValue, setSearchValue] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+
+  const handleLogout = () => {
+    // Clear admin session state
+    try {
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('user'); // Clear any user session data
+      localStorage.removeItem('adminSession'); // Clear admin session data
+    } catch (error) {
+      console.warn('Error clearing session storage:', error);
+    }
+    
+    // Redirect to main page instead of deleted login page
+    router.push('/');
+  };
+
+  const handleMenuItemClick = (action: string) => {
+    setShowProfile(false); // Close the dropdown
+    
+    switch (action) {
+      case 'settings':
+        onNavigateToSettings?.();
+        break;
+      case 'messages':
+        onOpenMessages?.();
+        break;
+      case 'schedule':
+        onOpenSchedule?.();
+        break;
+      case 'preferences':
+        onOpenPreferences?.();
+        break;
+    }
+  };
 
   const mockNotifications = [
     { id: 1, title: 'New user registration', message: 'John Doe just signed up', time: '2 min ago', type: 'user' },
@@ -195,16 +238,17 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({
                   
                   <div className="p-2">
                     {[
-                      { icon: Shield, label: 'Admin Settings', color: 'text-blue-600' },
-                      { icon: Mail, label: 'Messages', color: 'text-green-600' },
-                      { icon: Calendar, label: 'Schedule', color: 'text-purple-600' },
-                      { icon: Settings, label: 'Preferences', color: 'text-orange-600' }
+                      { icon: Shield, label: 'Admin Settings', color: 'text-blue-600', action: 'settings' },
+                      { icon: Mail, label: 'Messages', color: 'text-green-600', action: 'messages' },
+                      { icon: Calendar, label: 'Schedule', color: 'text-purple-600', action: 'schedule' },
+                      { icon: Settings, label: 'Preferences', color: 'text-orange-600', action: 'preferences' }
                     ].map((item, index) => (
                       <motion.button
                         key={item.label}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
+                        onClick={() => handleMenuItemClick(item.action)}
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                       >
                         <item.icon className={`w-4 h-4 ${item.color}`} />
@@ -213,7 +257,10 @@ const AdminNavbar: React.FC<AdminNavbarProps> = ({
                     ))}
                     
                     <div className="border-t border-slate-200 dark:border-slate-700 mt-2 pt-2">
-                      <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400">
+                      <button 
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                      >
                         <LogOut className="w-4 h-4" />
                         <span className="text-sm">Sign Out</span>
                       </button>

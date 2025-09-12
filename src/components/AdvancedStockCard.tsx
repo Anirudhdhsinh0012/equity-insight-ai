@@ -235,7 +235,7 @@ const AdvancedStockCard: React.FC<AdvancedStockCardProps> = ({
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-1">
             <motion.h3 
-              className="text-lg font-bold text-gray-100 dark:text-gray-100"
+              className="text-lg font-bold text-slate-900 dark:text-white"
               whileHover={{ scale: 1.05 }}
             >
               {stock.ticker}
@@ -256,7 +256,7 @@ const AdvancedStockCard: React.FC<AdvancedStockCardProps> = ({
               {stock.isWatched ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
             </motion.button>
           </div>
-          <p className="text-sm text-gray-300 dark:text-gray-400 truncate">
+          <p className="text-sm text-slate-800 dark:text-white truncate font-medium">
             {stock.name}
           </p>
           {stock.sector && !compact && (
@@ -286,7 +286,7 @@ const AdvancedStockCard: React.FC<AdvancedStockCardProps> = ({
       <div className="mb-4">
         <div className="flex items-baseline space-x-2 mb-2">
           <motion.span
-            className="text-2xl font-bold text-gray-100 dark:text-gray-100"
+            className="text-2xl font-bold text-slate-900 dark:text-white"
             variants={priceVariants}
             animate={priceAnimation}
           >
@@ -310,7 +310,7 @@ const AdvancedStockCard: React.FC<AdvancedStockCardProps> = ({
           </motion.div>
         </div>
         
-        <div className="flex items-center space-x-4 text-sm text-gray-300 dark:text-gray-400">
+        <div className="flex items-center space-x-4 text-sm text-slate-800 dark:text-white font-medium">
           <span>{isPositive ? '+' : ''}${stock.change.toFixed(2)}</span>
           {stock.volume && (
             <div className="flex items-center space-x-1">
@@ -325,13 +325,13 @@ const AdvancedStockCard: React.FC<AdvancedStockCardProps> = ({
       {showCharts && !compact && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">24h Chart</span>
+            <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">24h Chart</span>
             <div className="flex items-center space-x-1">
               <div className={`w-2 h-2 rounded-full ${
                 trendDirection === 'up' ? 'bg-emerald-500' :
                 trendDirection === 'down' ? 'bg-red-500' : 'bg-gray-500'
               }`} />
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-slate-600 dark:text-slate-300">
                 {trendDirection === 'up' ? 'Bullish' : trendDirection === 'down' ? 'Bearish' : 'Neutral'}
               </span>
             </div>
@@ -345,32 +345,32 @@ const AdvancedStockCard: React.FC<AdvancedStockCardProps> = ({
         <div className="grid grid-cols-2 gap-3 mb-4">
           {stock.marketCap && (
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Market Cap</p>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">Market Cap</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
                 ${(stock.marketCap / 1000000000).toFixed(1)}B
               </p>
             </div>
           )}
           {stock.peRatio && (
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">P/E Ratio</p>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">P/E Ratio</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
                 {stock.peRatio.toFixed(1)}
               </p>
             </div>
           )}
           {stock.high52Week && (
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">52W High</p>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">52W High</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
                 ${stock.high52Week.toFixed(2)}
               </p>
             </div>
           )}
           {stock.low52Week && (
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">52W Low</p>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">52W Low</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
                 ${stock.low52Week.toFixed(2)}
               </p>
             </div>
@@ -416,7 +416,7 @@ const AdvancedStockCard: React.FC<AdvancedStockCardProps> = ({
       {/* Last Updated */}
       {stock.lastUpdate && (
         <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
             <div className="flex items-center space-x-1">
               <Clock className="w-3 h-3" />
               <span>Updated {stock.lastUpdate.toLocaleTimeString()}</span>

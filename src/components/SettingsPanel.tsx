@@ -33,11 +33,12 @@ import TwoFactorManagement from './TwoFactorManagement';
 
 interface SettingsPanelProps {
   onClose?: () => void;
+  initialTab?: string; // allows deep link (e.g., profile, notifications, appearance, security)
 }
 
-export default function SettingsPanel({ onClose }: SettingsPanelProps) {
+export default function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
   const { theme, toggleTheme, colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(initialTab || 'profile');
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: 'Monish',

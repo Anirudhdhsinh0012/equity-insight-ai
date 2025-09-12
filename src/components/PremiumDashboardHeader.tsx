@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -76,6 +77,7 @@ interface PremiumDashboardHeaderProps {
   onThemeToggle?: () => void;
   onProfileClick?: () => void;
   onSettingsClick?: () => void;
+  onLogout?: () => void;
   userName?: string;
   userAvatar?: string;
   isDarkMode?: boolean;
@@ -282,6 +284,7 @@ export const PremiumDashboardHeader: React.FC<PremiumDashboardHeaderProps> = ({
   onThemeToggle,
   onProfileClick,
   onSettingsClick,
+  onLogout,
   userName = 'John Doe',
   userAvatar,
   isDarkMode = false,
@@ -289,6 +292,7 @@ export const PremiumDashboardHeader: React.FC<PremiumDashboardHeaderProps> = ({
   className = ''
 }) => {
   const { theme, colors, isTransitioning } = useTheme();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -476,14 +480,22 @@ export const PremiumDashboardHeader: React.FC<PremiumDashboardHeaderProps> = ({
                   >
                     <div className="p-2">
                       <button
-                        onClick={onProfileClick}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          router.push('/settings?tab=profile');
+                          onProfileClick?.();
+                        }}
                         className={`w-full flex items-center space-x-2 p-2 hover:${colors.primary.surfaceHover} rounded-lg ${colors.animation.transition}`}
                       >
                         <User className="w-4 h-4" />
                         <span>Profile</span>
                       </button>
                       <button
-                        onClick={onSettingsClick}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          router.push('/settings?tab=appearance');
+                          onSettingsClick?.();
+                        }}
                         className={`w-full flex items-center space-x-2 p-2 hover:${colors.primary.surfaceHover} rounded-lg ${colors.animation.transition}`}
                       >
                         <Settings className="w-4 h-4" />
@@ -491,7 +503,10 @@ export const PremiumDashboardHeader: React.FC<PremiumDashboardHeaderProps> = ({
                       </button>
                       <hr className={`my-2 ${colors.primary.border}`} />
                       <button
-                        onClick={() => {/* Handle logout */}}
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          onLogout?.();
+                        }}
                         className={`w-full flex items-center space-x-2 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 rounded-lg ${colors.animation.transition}`}
                       >
                         <LogOut className="w-4 h-4" />

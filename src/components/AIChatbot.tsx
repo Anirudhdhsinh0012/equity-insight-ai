@@ -23,24 +23,93 @@ import {
   HelpCircle,
   Zap,
   Sun,
-  Moon
+  Moon,
+  Star,
+  Wand2,
+  Brain,
+  Activity,
+  ArrowUp
 } from 'lucide-react';
 import finnhubService from '@/services/finnhubService';
 
-// Custom styles for better scrollbar styling
+// Enhanced custom styles for premium UI
 const scrollbarStyles = `
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+  .premium-scrollbar::-webkit-scrollbar {
+    width: 8px;
   }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
+  .premium-scrollbar::-webkit-scrollbar-track {
+    background: linear-gradient(90deg, rgba(79, 70, 229, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+    border-radius: 4px;
   }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #4B5563;
-    border-radius: 3px;
+  .premium-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #6B7280;
+  .premium-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  }
+  
+  .glassmorphism {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  
+  .glassmorphism-dark {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  
+  .message-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .bot-gradient {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+  }
+  
+  .floating-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  
+  .particle {
+    position: absolute;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(180deg); }
+  }
+  
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  .pulse-ring {
+    animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+  }
+  
+  @keyframes pulse-ring {
+    0% { transform: scale(0.33); }
+    80%, 100% { opacity: 0; }
   }
 `;
 
@@ -109,7 +178,7 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
     {
       id: 'welcome',
       type: 'bot',
-      content: "👋 Hi! I'm your AI assistant. I can help you with:\n\n📈 Stock market information\n💬 Website features and navigation\n🎯 Investment insights\n\nTry asking me about any stock symbol or ask 'help' for more options!",
+      content: "✨ Welcome to the future of AI assistance! I'm your premium AI companion, equipped with:\n\n� Real-time stock market intelligence\n🧠 Advanced investment insights\n🎯 Personalized recommendations\n💎 Premium market analytics\n\nExperience the next generation of financial AI. Ask me anything about stocks or say 'help' to explore my capabilities!",
       timestamp: new Date(),
       metadata: { type: 'general' } 
     }
@@ -126,6 +195,10 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
 
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(true);
+  
+  // Premium effects state
+  const [showParticles, setShowParticles] = useState(true);
+  const [messageCount, setMessageCount] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -746,215 +819,405 @@ Try asking about a specific stock symbol or type "help" for more options!`;
     setIsDarkMode(!isDarkMode);
   };
 
-  // Theme-aware styles
+  // Enhanced theme configuration with premium styling
   const theme = {
-    bg: isDarkMode ? 'bg-gray-900/95' : 'bg-white/95',
-    border: isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50',
-    headerBg: isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50/50',
-    inputBg: isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50',
-    inputBorder: isDarkMode ? 'border-gray-600/50' : 'border-gray-300/50',
-    inputFocus: isDarkMode ? 'focus:ring-blue-500/50 focus:border-blue-500/50' : 'focus:ring-blue-500/50 focus:border-blue-500/50',
+    // Main container styles
+    bg: isDarkMode 
+      ? 'glassmorphism-dark shadow-2xl shadow-purple-500/20' 
+      : 'glassmorphism shadow-2xl shadow-blue-500/20',
+    
+    // Text colors
     text: isDarkMode ? 'text-white' : 'text-gray-900',
-    textSecondary: isDarkMode ? 'text-gray-400' : 'text-gray-600',
-    textMuted: isDarkMode ? 'text-gray-500' : 'text-gray-500',
-    buttonBg: isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50',
-    buttonHover: isDarkMode ? 'hover:bg-gray-600/50' : 'hover:bg-gray-300/50',
-    messageUser: isDarkMode ? 'bg-blue-600' : 'bg-blue-500',
-    messageBot: isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100/50',
-    messageBotText: isDarkMode ? 'text-gray-200' : 'text-gray-800',
-    messageTimeUser: isDarkMode ? 'text-blue-200' : 'text-blue-100',
+    textSecondary: isDarkMode ? 'text-gray-300' : 'text-gray-600',
+    textMuted: isDarkMode ? 'text-gray-500' : 'text-gray-400',
+    
+    // Header styles
+    headerBg: isDarkMode 
+      ? 'bg-gradient-to-r from-slate-800/90 to-slate-900/90 border-b border-white/10' 
+      : 'bg-gradient-to-r from-white/90 to-gray-50/90 border-b border-gray-200/50',
+    
+    // Button styles
+    buttonBg: isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20',
+    buttonHover: 'transition-all duration-300 hover:scale-105',
+    
+    // Avatar styles
+    avatarBg: 'bg-gradient-to-br from-blue-500 to-purple-600',
+    avatarText: 'text-white',
+    botAvatarBg: 'bg-gradient-to-br from-purple-500 to-pink-500 relative overflow-hidden',
+    botAvatarText: 'text-white',
+    
+    // Message styles
+    messageUser: 'message-gradient text-white shadow-lg',
+    messageBot: isDarkMode 
+      ? 'bot-gradient text-gray-100 shadow-lg' 
+      : 'bg-gradient-to-br from-gray-100 to-white text-gray-800 shadow-lg border border-gray-200/50',
+    messageBotText: isDarkMode ? 'text-gray-100' : 'text-gray-800',
+    messageTimeUser: 'text-blue-100',
     messageTimeBot: isDarkMode ? 'text-gray-400' : 'text-gray-500',
-    avatarBg: isDarkMode ? 'bg-gray-600' : 'bg-gray-300',
-    avatarText: isDarkMode ? 'text-gray-300' : 'text-gray-700',
-    botAvatarBg: isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100/50',
-    botAvatarText: isDarkMode ? 'text-blue-400' : 'text-blue-600',
+    
+    // Input styles
+    inputBg: isDarkMode 
+      ? 'bg-white/10 backdrop-blur-sm' 
+      : 'bg-white/80 backdrop-blur-sm',
+    inputBorder: isDarkMode ? 'border border-white/20' : 'border border-gray-300/50',
+    inputFocus: isDarkMode ? 'ring-purple-500/50 border-purple-500/50' : 'ring-blue-500/50 border-blue-500/50',
     placeholder: isDarkMode ? 'placeholder-gray-400' : 'placeholder-gray-500',
-    scrollbar: 'overflow-y-auto',
-    shadow: isDarkMode ? 'shadow-2xl' : 'shadow-xl',
-    backdrop: isDarkMode ? 'backdrop-blur-xl' : 'backdrop-blur-lg'
+    
+    // Scrollbar
+    scrollbar: 'premium-scrollbar',
+    
+    // Border
+    border: isDarkMode ? 'border-white/10' : 'border-gray-200/50',
+    
+    // Shadow and backdrop
+    shadow: isDarkMode ? 'shadow-2xl shadow-purple-500/20' : 'shadow-2xl shadow-blue-500/20',
+    backdrop: 'backdrop-blur-xl'
   };
 
+  // Premium particle background component
+  const ParticleBackground = () => (
+    <div className="floating-particles">
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="particle"
+          style={{
+            width: Math.random() * 4 + 2 + 'px',
+            height: Math.random() * 4 + 2 + 'px',
+            left: Math.random() * 100 + '%',
+            top: Math.random() * 100 + '%',
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.3, 0.8, 0.3],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 4 + Math.random() * 2,
+            repeat: Infinity,
+            delay: Math.random() * 2,
+          }}
+        />
+      ))}
+    </div>
+  );
+
   if (!isOpen) return null;
+
+  // Inject enhanced styles
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = scrollbarStyles;
+    document.head.appendChild(styleElement);
+    return () => {
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
+    };
+  }, []);
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        initial={{ opacity: 0, scale: 0.8, y: 50 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className={`fixed bottom-4 right-4 z-50 ${className}`}
+        exit={{ opacity: 0, scale: 0.8, y: 50 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className={`fixed bottom-6 right-6 z-50 ${className}`}
       >
         <motion.div
-          animate={{ height: isMinimized ? '60px' : '600px' }}
-          className={`${theme.bg} ${theme.backdrop} ${theme.border} rounded-2xl ${theme.shadow} overflow-hidden`}
+          animate={{ 
+            height: isMinimized ? '80px' : '700px',
+            width: isMinimized ? '350px' : '420px'
+          }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          className={`${theme.bg} ${theme.backdrop} rounded-3xl ${theme.shadow} overflow-hidden relative`}
           style={{
-            width: 'min(400px, 90vw)',
-            maxWidth: '400px',
-            minWidth: '320px'
+            maxWidth: '420px',
+            minWidth: '350px'
           }}
         >
+          {/* Particle Background */}
+          {showParticles && <ParticleBackground />}
+          
           {/* Header */}
-          <div className={`flex items-center justify-between p-4 ${theme.border} border-b ${theme.headerBg}`}>
-            <div className="flex items-center gap-3">
+          <div className={`flex items-center justify-between p-6 ${theme.headerBg} relative z-10`}>
+            <div className="flex items-center gap-4">
               <div className="relative">
-                <Bot className={`w-8 h-8 ${theme.botAvatarText}`} />
                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                  className="absolute -top-1 -right-1"
+                  className={`w-12 h-12 ${theme.botAvatarBg} rounded-2xl flex items-center justify-center relative overflow-hidden`}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", damping: 15 }}
                 >
-                  <Sparkles className="w-4 h-4 text-yellow-400" />
+                  <Bot className={`w-6 h-6 ${theme.botAvatarText} z-10`} />
+                  <motion.div
+                    className="absolute inset-0 shimmer"
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
                 </motion.div>
+                
+                <motion.div
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                >
+                  <Sparkles className="w-3 h-3 text-white" />
+                </motion.div>
+                
+                {/* Pulse rings */}
+                <motion.div
+                  className="absolute inset-0 border-2 border-purple-400 rounded-2xl pulse-ring"
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
               </div>
+              
               <div>
-                <h3 className={`${theme.text} font-semibold`}>AI Assistant</h3>
-                <p className={`${theme.textSecondary} text-sm`}>
-                  {isTyping ? 'Typing...' : 'Online'}
-                </p>
+                <motion.h3 
+                  className={`${theme.text} font-bold text-lg`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  AI Assistant
+                  <Wand2 className="inline w-4 h-4 ml-2 text-purple-400" />
+                </motion.h3>
+                <motion.p 
+                  className={`${theme.textSecondary} text-sm flex items-center gap-2`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  {isTyping ? (
+                    <>
+                      <Activity className="w-3 h-3 text-green-400 animate-pulse" />
+                      Thinking...
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      Premium AI Online
+                    </>
+                  )}
+                </motion.p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Theme Toggle */}
+            <div className="flex items-center gap-3">
+              {/* Enhanced controls with premium styling */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleTheme}
-                className={`p-2 rounded-lg transition-colors ${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary}`}
+                className={`p-3 rounded-xl ${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary} relative overflow-hidden group`}
                 title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
               >
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </motion.button>
-              <div className="flex flex-col items-end gap-1">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={toggleSpeech}
-                  disabled={!availableVoices.length}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isSpeaking
-                      ? 'bg-green-500/20 text-green-400'
-                      : ttsError
-                      ? 'bg-red-500/20 text-red-400'
-                      : !availableVoices.length
-                      ? `${theme.buttonBg} ${theme.textMuted} cursor-not-allowed`
-                      : `${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary}`
-                  }`}
-                  title={
-                    !availableVoices.length
-                      ? 'Speech synthesis not available'
-                      : isSpeaking
-                      ? 'Stop speaking'
-                      : ttsError
-                      ? `Retry speech (${ttsRetryCount}/${maxRetries})`
-                      : 'Read last message'
-                  }
+                <motion.div
+                  initial={false}
+                  animate={{ rotate: isDarkMode ? 0 : 180 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </motion.button>
-
-                {ttsError && (
-                  <div className={`text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded max-w-32 text-right`}>
-                    {ttsError.length > 30 ? `${ttsError.substring(0, 30)}...` : ttsError}
-                  </div>
+                  {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </motion.div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleSpeech}
+                disabled={!availableVoices.length}
+                className={`p-3 rounded-xl transition-all duration-300 relative overflow-hidden group ${
+                  isSpeaking
+                    ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 shadow-lg shadow-green-500/25'
+                    : ttsError
+                    ? 'bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-400 shadow-lg shadow-red-500/25'
+                    : !availableVoices.length
+                    ? `${theme.buttonBg} ${theme.textMuted} cursor-not-allowed`
+                    : `${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary}`
+                }`}
+                title={
+                  !availableVoices.length
+                    ? 'Speech synthesis not available'
+                    : isSpeaking
+                    ? 'Stop speaking'
+                    : ttsError
+                    ? `Retry speech (${ttsRetryCount}/${maxRetries})`
+                    : 'Read last message'
+                }
+              >
+                <motion.div
+                  animate={isSpeaking ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                >
+                  {isSpeaking ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </motion.div>
+                {isSpeaking && (
+                  <motion.div
+                    className="absolute inset-0 border-2 border-green-400/50 rounded-xl"
+                    animate={{ scale: [1, 1.2, 1], opacity: [1, 0, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  />
                 )}
-              </div>
+              </motion.button>
 
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsMinimized(!isMinimized)}
-                className={`p-2 rounded-lg transition-colors ${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary}`}
+                className={`p-3 rounded-xl ${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary} relative overflow-hidden group`}
                 title={isMinimized ? 'Maximize' : 'Minimize'}
               >
-                {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+                <motion.div
+                  animate={{ rotate: isMinimized ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {isMinimized ? <Maximize2 className="w-5 h-5" /> : <Minimize2 className="w-5 h-5" />}
+                </motion.div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
               </motion.button>
 
               <motion.button
-                whileHover={{ scale: 1.1 }}
+                whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                className="p-3 rounded-xl bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-400 hover:from-red-500/30 hover:to-pink-500/30 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-red-500/25"
                 title="Close chat"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-300/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
               </motion.button>
             </div>
           </div>
 
-          {/* Messages */}
+          {/* Enhanced Messages Section */}
           {!isMinimized && (
-            <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${theme.scrollbar}`} style={{ height: '440px' }}>
-              {messages.map((message) => (
+            <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${theme.scrollbar} relative z-10`} style={{ height: '500px' }}>
+              {messages.map((message, index) => (
                 <motion.div
                   key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    delay: index * 0.1,
+                    type: "spring", 
+                    damping: 20, 
+                    stiffness: 300 
+                  }}
+                  className={`flex gap-4 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.type === 'bot' && (
-                    <div className="flex-shrink-0">
-                      <div className={`w-8 h-8 ${theme.botAvatarBg} rounded-full flex items-center justify-center`}>
-                        <Bot className={`w-4 h-4 ${theme.botAvatarText}`} />
+                    <motion.div 
+                      className="flex-shrink-0"
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ type: "spring", damping: 15 }}
+                    >
+                      <div className={`w-10 h-10 ${theme.botAvatarBg} rounded-2xl flex items-center justify-center relative overflow-hidden`}>
+                        <Bot className={`w-5 h-5 ${theme.botAvatarText} z-10`} />
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-pink-400/30"
+                          animate={{ opacity: [0, 0.5, 0] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
                       </div>
-                    </div>
+                    </motion.div>
                   )}
 
-                  <div
-                    className={`max-w-[80%] p-3 rounded-2xl ${
+                  <motion.div
+                    className={`max-w-[85%] p-4 rounded-3xl relative overflow-hidden group ${
                       message.type === 'user'
                         ? theme.messageUser
                         : theme.messageBot
                     } ${message.type === 'user' ? 'text-white' : theme.messageBotText}`}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: "spring", damping: 20 }}
                   >
-                    <div className="whitespace-pre-wrap text-sm">
+                    {/* Message shimmer effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                    
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed relative z-10">
                       {message.content}
                     </div>
-                    <div className={`text-xs mt-2 ${
+                    
+                    <div className={`text-xs mt-3 flex items-center gap-2 ${
                       message.type === 'user' ? theme.messageTimeUser : theme.messageTimeBot
                     }`}>
-                      {message.timestamp.toLocaleTimeString()}
+                      <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 bg-current rounded-full opacity-60" />
+                        {message.timestamp.toLocaleTimeString()}
+                      </div>
+                      {message.type === 'bot' && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.5 }}
+                          className="flex items-center gap-1"
+                        >
+                          <Brain className="w-3 h-3 opacity-60" />
+                          <span className="text-xs opacity-60">AI Generated</span>
+                        </motion.div>
+                      )}
                     </div>
-                  </div>
+                  </motion.div>
 
                   {message.type === 'user' && (
-                    <div className="flex-shrink-0">
-                      <div className={`w-8 h-8 ${theme.avatarBg} rounded-full flex items-center justify-center`}>
-                        <User className={`w-4 h-4 ${theme.avatarText}`} />
+                    <motion.div 
+                      className="flex-shrink-0"
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ type: "spring", damping: 15 }}
+                    >
+                      <div className={`w-10 h-10 ${theme.avatarBg} rounded-2xl flex items-center justify-center`}>
+                        <User className={`w-5 h-5 ${theme.avatarText}`} />
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </motion.div>
               ))}
 
+              {/* Enhanced typing indicator */}
               {isTyping && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-3 justify-start"
+                  exit={{ opacity: 0, y: -20 }}
+                  className="flex gap-4 justify-start"
                 >
-                  <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 ${theme.botAvatarBg} rounded-full flex items-center justify-center`}>
-                      <Bot className={`w-4 h-4 ${theme.botAvatarText}`} />
+                  <motion.div 
+                    className="flex-shrink-0"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <div className={`w-10 h-10 ${theme.botAvatarBg} rounded-2xl flex items-center justify-center relative overflow-hidden`}>
+                      <Bot className={`w-5 h-5 ${theme.botAvatarText}`} />
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-purple-400/30"
+                        animate={{ opacity: [0, 0.8, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
                     </div>
-                  </div>
-                  <div className={`p-3 rounded-2xl ${theme.messageBot}`}>
-                    <div className="flex space-x-1">
+                  </motion.div>
+                  
+                  <div className={`p-4 rounded-3xl ${theme.messageBot} relative overflow-hidden`}>
+                    <div className="flex items-center space-x-2">
                       <motion.div
                         animate={{ opacity: [0.4, 1, 0.4] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
-                        className="w-2 h-2 bg-blue-400 rounded-full"
+                        className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
                       />
                       <motion.div
                         animate={{ opacity: [0.4, 1, 0.4] }}
-                        transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
-                        className="w-2 h-2 bg-blue-400 rounded-full"
+                        transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                        className="w-3 h-3 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"
                       />
                       <motion.div
                         animate={{ opacity: [0.4, 1, 0.4] }}
-                        transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }}
-                        className="w-2 h-2 bg-blue-400 rounded-full"
+                        transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }}
+                        className="w-3 h-3 bg-gradient-to-r from-pink-400 to-red-400 rounded-full"
                       />
+                    </div>
+                    <div className="text-xs mt-2 opacity-60 flex items-center gap-1">
+                      <Zap className="w-3 h-3" />
+                      AI is analyzing...
                     </div>
                   </div>
                 </motion.div>
@@ -964,33 +1227,51 @@ Try asking about a specific stock symbol or type "help" for more options!`;
             </div>
           )}
 
-          {/* Input */}
+          {/* Enhanced Input Section */}
           {!isMinimized && (
-            <div className={`p-4 ${theme.border} border-t`}>
-              <div className="flex gap-2">
+            <div className={`p-6 ${theme.border} border-t backdrop-blur-sm relative z-10`}>
+              <div className="flex gap-4 items-end">
                 <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask about stocks, website features, or say 'help'..."
-                    className={`w-full px-4 py-3 ${theme.inputBg} ${theme.inputBorder} rounded-xl ${theme.text} ${theme.placeholder} focus:outline-none focus:ring-2 ${theme.inputFocus}`}
-                  />
-
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={isListening ? stopListening : startListening}
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-colors ${
-                      isListening
-                        ? 'bg-red-500/20 text-red-400 animate-pulse'
-                        : `${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary}`
-                    }`}
-                    title={isListening ? 'Stop listening' : 'Start voice input'}
+                  <motion.div
+                    className="relative"
+                    whileFocus={{ scale: 1.02 }}
+                    transition={{ type: "spring", damping: 20 }}
                   >
-                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  </motion.button>
+                    <input
+                      type="text"
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="✨ Ask me anything about stocks, market insights, or say 'help' for magic..."
+                      className={`w-full px-6 py-4 pr-16 ${theme.inputBg} ${theme.inputBorder} rounded-2xl ${theme.text} ${theme.placeholder} focus:outline-none focus:ring-2 ${theme.inputFocus} transition-all duration-300 text-sm`}
+                    />
+
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={isListening ? stopListening : startListening}
+                      className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-xl transition-all duration-300 ${
+                        isListening
+                          ? 'bg-gradient-to-r from-red-500/30 to-pink-500/30 text-red-400 shadow-lg shadow-red-500/25'
+                          : `${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary}`
+                      }`}
+                      title={isListening ? 'Stop listening' : 'Start voice input'}
+                    >
+                      <motion.div
+                        animate={isListening ? { scale: [1, 1.2, 1] } : {}}
+                        transition={{ duration: 0.5, repeat: Infinity }}
+                      >
+                        {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                      </motion.div>
+                      {isListening && (
+                        <motion.div
+                          className="absolute inset-0 border-2 border-red-400/50 rounded-xl"
+                          animate={{ scale: [1, 1.3, 1], opacity: [1, 0, 1] }}
+                          transition={{ duration: 1, repeat: Infinity }}
+                        />
+                      )}
+                    </motion.button>
+                  </motion.div>
                 </div>
 
                 <motion.button
@@ -998,29 +1279,84 @@ Try asking about a specific stock symbol or type "help" for more options!`;
                   whileTap={{ scale: 0.95 }}
                   onClick={sendMessage}
                   disabled={!inputMessage.trim()}
-                  className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-colors flex items-center gap-2"
+                  className={`px-6 py-4 rounded-2xl transition-all duration-300 flex items-center gap-3 relative overflow-hidden group ${
+                    !inputMessage.trim()
+                      ? 'bg-gray-400/20 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25'
+                  }`}
                 >
-                  <Send className="w-4 h-4" />
+                  <motion.div
+                    animate={inputMessage.trim() ? { rotate: [0, 360] } : {}}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Send className="w-5 h-5" />
+                  </motion.div>
+                  <span className="font-medium">Send</span>
+                  {inputMessage.trim() && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
+                  )}
                 </motion.button>
               </div>
 
+              {/* Enhanced listening indicator */}
               {isListening && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 text-center"
+                  exit={{ opacity: 0, y: -20 }}
+                  className="mt-4 text-center"
                 >
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm">
+                  <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/30 text-red-400 rounded-2xl text-sm backdrop-blur-sm">
                     <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
+                      animate={{ scale: [1, 1.3, 1] }}
                       transition={{ duration: 1, repeat: Infinity }}
+                      className="relative"
                     >
-                      <Mic className="w-4 h-4" />
+                      <Mic className="w-5 h-5" />
+                      <motion.div
+                        className="absolute inset-0 border-2 border-red-400/50 rounded-full"
+                        animate={{ scale: [1, 2, 1], opacity: [1, 0, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
                     </motion.div>
-                    Listening... Speak now
+                    <span className="font-medium">I'm listening... Speak your mind!</span>
+                    <motion.div
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="flex gap-1"
+                    >
+                      <div className="w-1 h-4 bg-red-400 rounded-full" />
+                      <div className="w-1 h-4 bg-red-400 rounded-full" />
+                      <div className="w-1 h-4 bg-red-400 rounded-full" />
+                    </motion.div>
                   </div>
                 </motion.div>
               )}
+
+              {/* Quick action buttons */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-4 flex flex-wrap gap-2 justify-center"
+              >
+                {[
+                  { icon: TrendingUp, text: "Market Overview", action: () => setInputMessage("What's the market overview today?") },
+                  { icon: DollarSign, text: "AAPL Stock", action: () => setInputMessage("Show me AAPL stock price") },
+                  { icon: HelpCircle, text: "Help", action: () => setInputMessage("help") }
+                ].map((btn, i) => (
+                  <motion.button
+                    key={i}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={btn.action}
+                    className={`px-3 py-2 ${theme.buttonBg} ${theme.buttonHover} ${theme.textSecondary} rounded-xl text-xs flex items-center gap-2 transition-all duration-300`}
+                  >
+                    <btn.icon className="w-3 h-3" />
+                    {btn.text}
+                  </motion.button>
+                ))}
+              </motion.div>
             </div>
           )}
         </motion.div>

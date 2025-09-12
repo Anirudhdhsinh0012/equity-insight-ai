@@ -833,8 +833,8 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
 
         {/* Main Content with fixed header */}
         <div className={`transition-all duration-300 ${
-          sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
-        }`}>
+          sidebarCollapsed ? 'lg:ml-28' : 'lg:ml-[21rem]'
+        } min-w-0`}>
           {/* Fixed Header */}
           <div className="fixed top-0 right-0 z-30" style={{
             left: sidebarCollapsed ? '5rem' : '22rem'
@@ -846,6 +846,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
               onNotificationClick={handleNotificationClick}
               onMenuToggle={() => setShowMobileMenu(!showMobileMenu)}
               onThemeToggle={handleThemeToggle}
+              onLogout={onLogout}
               userName={user.name}
               isDarkMode={isDarkMode}
               showMobileMenu={showMobileMenu}

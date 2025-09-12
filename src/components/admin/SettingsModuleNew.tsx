@@ -112,7 +112,7 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ className = '' }) => {
       const data = await adminSettingsService.getSettings();
       setSettings(data);
       setOriginalSettings(data);
-      toast.addToast({ type: 'success', title: 'Settings loaded successfully' });
+      // Removed automatic success toast on load - only show on user actions
     } catch (error) {
       console.error('Error loading settings:', error);
       toast.addToast({ type: 'error', title: 'Failed to load settings' });
