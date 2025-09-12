@@ -59,16 +59,7 @@ export default function HomePage() {
         <LandingPageIntegrated onLogin={handleLogin} />
       )}
       
-      {/* Admin Access Link */}
-      <div className="fixed bottom-4 left-4 z-50">
-        <a 
-          href="/admin-activity" 
-          target="_blank"
-          className="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-600 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg hover:bg-white hover:text-gray-900 transition-all duration-200"
-        >
-          📊 Admin Activity Dashboard
-        </a>
-      </div>
+      {/* Admin Access Link removed to hide the admin dashboard shortcut from public UI */}
     </ThemeProvider>
   );
 }

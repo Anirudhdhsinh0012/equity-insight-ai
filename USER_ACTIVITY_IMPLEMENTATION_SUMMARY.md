@@ -57,7 +57,7 @@ Successfully implemented comprehensive real user activity logging for the Equity
 4. **Content Interaction**: Clicks and engagements are captured
 
 ### For Admins
-1. **Access Admin Panel**: Click "📊 Admin Activity Dashboard" link (bottom-left)
+1. **Access Admin Panel**: Open the Admin Activity Dashboard at /admin-activity or via the admin navigation link (if enabled in your build).
 2. **Monitor Live Activity**: View real-time user interactions
 3. **Analyze Patterns**: Check most active sections and popular content
 4. **Track Engagement**: Monitor user engagement metrics
