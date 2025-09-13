@@ -203,7 +203,20 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  const shouldContinueSpeechRef = useRef<boolean>(true);
   const maxRetries = 3;
+
+  // Inject enhanced styles
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = scrollbarStyles;
+    document.head.appendChild(styleElement);
+    return () => {
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
+    };
+  }, []);
 
   // Data validation utility
   const validateStockData = (quote: any): boolean => {
@@ -271,8 +284,36 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
         };
 
         recognitionRef.current.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
           setIsListening(false);
+          
+          // Handle different error types gracefully
+          if (event.error === 'not-allowed') {
+            console.warn('Speech recognition not allowed by browser/user');
+            return;
+          }
+          
+          if (event.error === 'network') {
+            console.warn('Speech recognition network error (offline or connectivity issue)');
+            return;
+          }
+          
+          if (event.error === 'aborted') {
+            console.log('Speech recognition was aborted (normal behavior)');
+            return;
+          }
+          
+          if (event.error === 'no-speech') {
+            console.log('No speech detected - please try speaking again');
+            return;
+          }
+          
+          if (event.error === 'audio-capture') {
+            console.warn('Audio capture failed - check microphone permissions');
+            return;
+          }
+          
+          // Only log unexpected errors
+          console.warn('Speech recognition error:', event.error);
         };
       }
     }
@@ -305,6 +346,7 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
     }
 
     return () => {
+      shouldContinueSpeechRef.current = false;
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -314,21 +356,54 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
     };
   }, []);
 
+  // Clean up speech synthesis when chatbot is closed
+  useEffect(() => {
+    if (!isOpen) {
+      shouldContinueSpeechRef.current = false;
+      if (synthRef.current && isSpeaking) {
+        synthRef.current.cancel();
+        setIsSpeaking(false);
+      }
+      // Also stop speech recognition when chatbot closes
+      if (recognitionRef.current && isListening) {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      }
+    } else {
+      shouldContinueSpeechRef.current = true;
+    }
+  }, [isOpen, isSpeaking, isListening]);
+
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
-      setIsListening(true);
-      recognitionRef.current.start();
+      try {
+        setIsListening(true);
+        recognitionRef.current.start();
+      } catch (error) {
+        console.warn('Speech recognition failed to start:', error);
+        setIsListening(false);
+      }
     }
   };
 
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+      try {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      } catch (error) {
+        console.warn('Speech recognition failed to stop:', error);
+        setIsListening(false);
+      }
     }
   };
 
   const speakText = async (text: string, retryCount = 0): Promise<void> => {
+    // Don't speak if chatbot is not open or if we should stop
+    if (!isOpen || !shouldContinueSpeechRef.current) {
+      return;
+    }
+
     if (!synthRef.current) {
       const error = 'Speech synthesis not available';
       console.error(error);
@@ -342,8 +417,12 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
     }
 
     try {
-      // Cancel any ongoing speech
-      synthRef.current.cancel();
+      // Cancel any ongoing speech and wait a bit for cleanup
+      if (synthRef.current.speaking) {
+        synthRef.current.cancel();
+        // Small delay to ensure previous utterance is fully cancelled
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       setTtsError(null);
 
       const utterance = new SpeechSynthesisUtterance(text);
@@ -383,20 +462,40 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
       };
 
       utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event.error);
         setIsSpeaking(false);
 
+        // Handle different error types gracefully
+        if (event.error === 'interrupted') {
+          // This is expected when user closes chatbot or navigates away
+          console.log('Speech synthesis was interrupted (normal behavior)');
+          return;
+        }
+
+        if (event.error === 'canceled') {
+          // This is expected when new speech starts before previous ends
+          console.log('Speech synthesis was canceled (normal behavior)');
+          return;
+        }
+
+        // Only log and retry for actual errors
+        console.warn('Speech synthesis error:', event.error);
         const errorMessage = `Speech synthesis failed: ${event.error}`;
         setTtsError(errorMessage);
 
-        // Retry logic
-        if (retryCount < maxRetries) {
+        // Retry logic for genuine errors only
+        if (retryCount < maxRetries && event.error !== 'not-allowed' && shouldContinueSpeechRef.current) {
           console.log(`Retrying speech synthesis (attempt ${retryCount + 1}/${maxRetries})`);
           setTimeout(() => {
-            speakText(text, retryCount + 1);
+            if (shouldContinueSpeechRef.current) {
+              speakText(text, retryCount + 1);
+            }
           }, 1000 * (retryCount + 1)); // Exponential backoff
         } else {
-          console.error('Max retries reached for speech synthesis');
+          if (event.error === 'not-allowed') {
+            console.warn('Speech synthesis not allowed by browser/user');
+          } else {
+            console.error('Max retries reached for speech synthesis');
+          }
         }
       };
 
@@ -413,9 +512,9 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
 
       // Fallback timeout in case speech doesn't start
       setTimeout(() => {
-        if (!synthRef.current?.speaking && !synthRef.current?.pending) {
+        if (!synthRef.current?.speaking && !synthRef.current?.pending && shouldContinueSpeechRef.current) {
           console.warn('Speech synthesis did not start within timeout');
-          if (retryCount < maxRetries) {
+          if (retryCount < maxRetries && shouldContinueSpeechRef.current) {
             speakText(text, retryCount + 1);
           }
         }
@@ -427,9 +526,11 @@ export default function AIChatbot({ isOpen, onClose, className = '' }: ChatbotPr
       setIsSpeaking(false);
 
       // Final fallback
-      if (retryCount < maxRetries) {
+      if (retryCount < maxRetries && shouldContinueSpeechRef.current) {
         setTimeout(() => {
-          speakText(text, retryCount + 1);
+          if (shouldContinueSpeechRef.current) {
+            speakText(text, retryCount + 1);
+          }
         }, 2000);
       }
     }
@@ -904,18 +1005,6 @@ Try asking about a specific stock symbol or type "help" for more options!`;
 
   if (!isOpen) return null;
 
-  // Inject enhanced styles
-  useEffect(() => {
-    const styleElement = document.createElement('style');
-    styleElement.textContent = scrollbarStyles;
-    document.head.appendChild(styleElement);
-    return () => {
-      if (document.head.contains(styleElement)) {
-        document.head.removeChild(styleElement);
-      }
-    };
-  }, []);
-
   return (
     <AnimatePresence>
       <motion.div
@@ -923,25 +1012,30 @@ Try asking about a specific stock symbol or type "help" for more options!`;
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.8, y: 50 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className={`fixed bottom-6 right-6 z-50 ${className}`}
+        className={`fixed bottom-4 right-4 z-[9999] ${className}`}
+        style={{
+          maxHeight: 'calc(100vh - 2rem)',
+          maxWidth: 'calc(100vw - 2rem)'
+        }}
       >
         <motion.div
           animate={{ 
-            height: isMinimized ? '80px' : '700px',
-            width: isMinimized ? '350px' : '420px'
+            height: isMinimized ? '80px' : 'min(700px, calc(100vh - 4rem))',
+            width: isMinimized ? 'min(350px, calc(100vw - 2rem))' : 'min(420px, calc(100vw - 2rem))'
           }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className={`${theme.bg} ${theme.backdrop} rounded-3xl ${theme.shadow} overflow-hidden relative`}
+          className={`${theme.bg} ${theme.backdrop} rounded-3xl ${theme.shadow} overflow-hidden relative flex flex-col`}
           style={{
-            maxWidth: '420px',
-            minWidth: '350px'
+            maxWidth: 'min(420px, calc(100vw - 2rem))',
+            minWidth: 'min(320px, calc(100vw - 2rem))',
+            maxHeight: 'calc(100vh - 4rem)'
           }}
         >
           {/* Particle Background */}
           {showParticles && <ParticleBackground />}
           
           {/* Header */}
-          <div className={`flex items-center justify-between p-6 ${theme.headerBg} relative z-10`}>
+          <div className={`flex items-center justify-between p-6 ${theme.headerBg} relative z-10 flex-shrink-0`}>
             <div className="flex items-center gap-4">
               <div className="relative">
                 <motion.div
@@ -1092,7 +1186,11 @@ Try asking about a specific stock symbol or type "help" for more options!`;
 
           {/* Enhanced Messages Section */}
           {!isMinimized && (
-            <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${theme.scrollbar} relative z-10`} style={{ height: '500px' }}>
+            <div className={`flex-1 overflow-y-auto p-6 space-y-6 premium-scrollbar relative z-10`} 
+                 style={{ 
+                   maxHeight: 'calc(100% - 180px)', // Account for header and input sections
+                   minHeight: '300px' 
+                 }}>
               {messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -1229,7 +1327,7 @@ Try asking about a specific stock symbol or type "help" for more options!`;
 
           {/* Enhanced Input Section */}
           {!isMinimized && (
-            <div className={`p-6 ${theme.border} border-t backdrop-blur-sm relative z-10`}>
+            <div className={`p-6 ${theme.border} border-t backdrop-blur-sm relative z-10 flex-shrink-0`}>
               <div className="flex gap-4 items-end">
                 <div className="flex-1 relative">
                   <motion.div
